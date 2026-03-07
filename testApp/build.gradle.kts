@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.androidKmpLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.mavenPublish)
 }
 
 kotlin {
@@ -14,7 +13,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
 
-        namespace = "de.kuno.snappyswipe.lib"
+        namespace = "de.kuno.snappyswipe.testapp"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
 
@@ -26,7 +25,7 @@ kotlin {
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
-            baseName = "Lib"
+            baseName = "TestApp"
             isStatic = true
         }
     }
@@ -46,6 +45,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kermit)
+
+            implementation(projects.lib)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -55,38 +56,4 @@ kotlin {
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
-}
-
-mavenPublishing {
-    publishToMavenCentral()
-
-    signAllPublications()
-
-    coordinates("io.github.klassenkonstantin", "snappyswipe", "0.0.1")
-
-    pom {
-        name.set("Snappy Swipe")
-        description.set("Material expressive-like snappy swipe behavior")
-        inceptionYear.set("2026")
-        url.set("https://github.com/KlassenKonstantin/SnappySwipe")
-        licenses {
-            license {
-                name.set("The Apache License, Version 2.0")
-                url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                distribution.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-            }
-        }
-        developers {
-            developer {
-                id.set("KlassenKonstantin")
-                name.set("Konstantin Klassen")
-                url.set("https://github.com/KlassenKonstantin")
-            }
-        }
-        scm {
-            url.set("https://github.com/KlassenKonstantin/SnappySwipe")
-            connection.set("scm:git:https://github.com/KlassenKonstantin/SnappySwipe")
-            developerConnection.set("scm:git:ssh://git@github.com/KlassenKonstantin/ComposePhysicsLayout.git")
-        }
-    }
 }

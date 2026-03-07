@@ -32,4 +32,5 @@ dependencyResolutionManagement {
 }
 
 include(":lib")
+include(":testApp")
 include(":androidApp")

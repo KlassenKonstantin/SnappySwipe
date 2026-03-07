@@ -1,4 +1,4 @@
-package de.kuno.snappyswipe.snappyswipe
+package de.kuno.snappyswipe
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
@@ -228,7 +228,7 @@ class SnappyDragSettings(
     restickDistance: Dp = 50.dp,
     minCornerRadius: Dp = 0.dp,
     maxCornerRadius: Dp = 24.dp,
-    affectedNeighbours: Int = 1,
+    affectedNeighbours: Int = 2,
     offsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
     cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = spring(),
     friction: Float = 2f,

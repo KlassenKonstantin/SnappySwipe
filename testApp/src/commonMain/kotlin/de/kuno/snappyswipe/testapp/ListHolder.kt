@@ -1,4 +1,4 @@
-package de.kuno.snappyswipe
+package de.kuno.snappyswipe.testapp
 
 import androidx.compose.runtime.mutableStateOf
 

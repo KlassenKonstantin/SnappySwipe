@@ -1,4 +1,4 @@
-package de.kuno.snappyswipe.snappyswipe
+package de.kuno.snappyswipe
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec

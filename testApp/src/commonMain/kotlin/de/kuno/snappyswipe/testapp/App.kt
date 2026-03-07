@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 
-package de.kuno.snappyswipe
+package de.kuno.snappyswipe.testapp
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -47,10 +47,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
-import de.kuno.snappyswipe.snappyswipe.SnappyDragSettings
-import de.kuno.snappyswipe.snappyswipe.SnappyItem
-import de.kuno.snappyswipe.snappyswipe.rememberSnappyDragCoordinatorState
-import de.kuno.snappyswipe.snappyswipe.rememberSnappyDragSettings
+import de.kuno.snappyswipe.SnappyDragSettings
+import de.kuno.snappyswipe.SnappyItem
+import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
+import de.kuno.snappyswipe.rememberSnappyDragSettings
 
 @Composable
 @Preview

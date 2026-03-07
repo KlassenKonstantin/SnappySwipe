@@ -1,4 +1,4 @@
-package de.kuno.snappyswipe.snappyswipe
+package de.kuno.snappyswipe
 
 import kotlin.math.absoluteValue
 

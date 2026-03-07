@@ -17,7 +17,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtimeCompose)
     implementation(libs.kermit)
 
-    implementation(projects.lib)
+    implementation(projects.testApp)
 }
 
 android {
