@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 @OptIn(ExperimentalStdlibApi::class)
 class ListHolder(
     groups: Int = 10,
-    itemsPerGroup: Int = 20
+    itemsPerGroup: Int = 4
 ) {
     val list = mutableStateOf(createList(groups, itemsPerGroup))
 
