@@ -4,7 +4,7 @@
 
 A snappy swipe to delete component inspired by Material 3 Expressive notifications
 
-
+https://github.com/user-attachments/assets/048bd432-1858-45ca-b781-19507885682b
 
 ## Download
 
