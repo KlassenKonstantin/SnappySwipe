@@ -22,7 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -44,7 +44,7 @@ fun SnappyItem(
     dragCoordinatorState: DragCoordinatorState<SnappyDraggedItemInfo>,
     onDismissed: () -> Unit,
     settings: SnappyDragSettings,
-    content: @Composable BoxScope.(() -> ItemState<SnappyDraggedItemInfo>?) -> Unit,
+    content: @Composable BoxScope.(() -> Shape) -> Unit,
 ) {
     var dismissing by remember(key) { mutableStateOf(false) }
 
@@ -208,17 +208,14 @@ fun SnappyItem(
             ),
     ) {
         Box(
-            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().offset {
+            modifier = Modifier.offset {
                 IntOffset(
                     offsetAnimatable.value.toInt(),
                     0
                 )
-            }.graphicsLayer {
-                shape = shapeHelper.shape
-                clip = true
             },
         ) {
-            content(itemState)
+            content({ shapeHelper.shape })
         }
     }
 }
