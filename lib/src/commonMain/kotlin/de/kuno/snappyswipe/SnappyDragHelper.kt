@@ -3,7 +3,7 @@ package de.kuno.snappyswipe
 import kotlin.math.absoluteValue
 
 class SnappyDragHelper(
-    private val key: Any?,
+    private val key: Any,
     private val unstickDistance: Float,
     private val restickDistance: Float,
     private val onStuck: () -> Unit = { },

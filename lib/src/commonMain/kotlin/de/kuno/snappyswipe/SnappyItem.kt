@@ -3,7 +3,6 @@ package de.kuno.snappyswipe
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -246,7 +245,7 @@ fun rememberSnappyDragSettings(
     affectedNeighbours: Int = 2,
     offsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
     draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
-    cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = tween(3000),
+    cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = spring(),
     friction: Float = 2f,
 ): SnappyDragSettings {
     return remember {
@@ -267,7 +266,7 @@ fun rememberSnappyDragSettings(
 @Composable
 fun <T> rememberSnappyDragCoordinatorState(
     items: List<T>,
-    key: (T) -> Any?,
+    key: (T) -> Any,
     segmentType: (T) -> Any? = { null }
 ) = rememberDragCoordinatorState<SnappyDraggedItemInfo, T>(
     items = items,
@@ -276,7 +275,7 @@ fun <T> rememberSnappyDragCoordinatorState(
 )
 
 data class SnappyDraggedItemInfo(
-    override val key: Any?,
+    override val key: Any,
     override val dragOffset: Float,
     val unstuckProgress: Float,
     val stuck: Boolean,

@@ -19,14 +19,14 @@ import kotlin.math.min
 class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
     var dragInfo by mutableStateOf<T?>(null)
 
-    internal val itemOffsets = mutableStateMapOf<Any?, Float>()
+    internal val itemOffsets = mutableStateMapOf<Any, Float>()
     internal val itemInfos = mutableStateOf<List<ItemInfo>>(listOf())
 
     private val itemLookup by derivedStateOf {
         itemInfos.value.associateBy { it.key }
     }
 
-    fun getItemState(key: Any?): ItemState<T>? {
+    fun getItemState(key: Any): ItemState<T>? {
         val index = itemLookup[key]?.index ?: return null
         val itemInfos = itemInfos.value
 
@@ -75,7 +75,7 @@ class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
         )
     }
 
-    fun updateOffset(key: Any?, offset: Float) {
+    fun updateOffset(key: Any, offset: Float) {
         itemOffsets[key] = offset
     }
 }
@@ -83,7 +83,7 @@ class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
 @Composable
 fun <D : DraggedItemInfo, T> rememberDragCoordinatorState(
     items: List<T>,
-    key: (T) -> Any?,
+    key: (T) -> Any,
     segmentType: (T) -> Any? = { null },
 ): DragCoordinatorState<D> {
     return remember {
@@ -102,7 +102,7 @@ fun <D : DraggedItemInfo, T> rememberDragCoordinatorState(
 }
 
 interface DraggedItemInfo {
-    val key: Any?
+    val key: Any
     val dragOffset: Float
 }
 
@@ -119,10 +119,14 @@ data class ItemState<T : DraggedItemInfo>(
         get() = itemInfo.segmentType == bottomItemInfo?.segmentType
 
     val offsetDeltaTop: Float
-        get() = (itemInfo.offset - (topItemInfo?.offset ?: 0f)).absoluteValue
+        get() = topItemInfo?.offset?.let { topItemOffset ->
+            (itemInfo.offset - topItemOffset).absoluteValue
+        } ?: 0f
 
     val offsetDeltaBottom: Float
-        get() = (itemInfo.offset - (bottomItemInfo?.offset ?: 0f)).absoluteValue
+        get() = bottomItemInfo?.offset?.let { bottomItemOffset ->
+            (itemInfo.offset - bottomItemOffset).absoluteValue
+        } ?: 0f
 
     val isDraggedItem: Boolean
         get() = itemInfo.key == draggedItemRelation?.draggedItemInfo?.key
@@ -148,7 +152,7 @@ data class DraggedItemRelation<T : DraggedItemInfo>(
 )
 
 data class ItemInfo(
-    val key: Any?,
+    val key: Any,
     val index: Int,
     val segmentType: Any?,
     val offset: Float,
