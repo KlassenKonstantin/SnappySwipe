@@ -1,35 +1,67 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# Snappy Swipe
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+![Version](https://img.shields.io/maven-central/v/io.github.klassenkonstantin/snappyswipe)
 
-* [/iosApp](./iosApp/iosApp) contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform,
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+A snappy swipe to delete component inspired by Material 3 Expressive notifications
 
-### Build and Run Android Application
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
 
-### Build and Run iOS Application
+## Download
 
-To build and run the development version of the iOS app, use the run configuration from the run widget
-in your IDE’s toolbar or open the [/iosApp](./iosApp) directory in Xcode and run it from there.
+First add the dependency to your module's `build.gradle`:
 
----
+```kotlin
+implementation("io.github.klassenkonstantin:snappyswipe:<version>")
+```
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## Example usage
+
+```kotlin
+val items = remember {
+    buildList {
+        repeat(10) { add("Item $it") }
+    }
+}
+
+val dragCoordinatorState = rememberSnappyDragCoordinatorState(
+    items = items, // Same as items of LazyColumn
+    key = { it }, // Same as key of LazyColumn item
+)
+
+val settings = rememberSnappyDragSettings()
+
+LazyColumn(
+    verticalArrangement = Arrangement.spacedBy(2.dp),
+) {
+    items(
+        items = items,
+        key = { it }
+    ) { item ->
+        SnappyItem(
+            key = item, // Same as key of LazyColumn item
+            dragCoordinatorState = dragCoordinatorState,
+            onDismissed = {
+                // Remove item
+            },
+            settings = settings
+        ) { provideShape ->
+            ListItem(
+                colors = ListItemDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                modifier = Modifier.padding(horizontal = 16.dp)
+                    .graphicsLayer {
+                        shape = provideShape()
+                        clip = true
+                    },
+                headlineContent = {
+                    Text(
+                        text = item,
+                    )
+                },
+            )
+
+        }
+    }
+}
+```
