@@ -22,11 +22,11 @@ import kotlinx.coroutines.launch
 import kotlin.experimental.ExperimentalTypeInference
 
 @OptIn(ExperimentalTypeInference::class)
-class ShapeHelper(
+class ShapeHelper internal constructor(
     minCornerRadius: () -> Dp,
     maxCornerRadius: () -> Dp,
     animationSpec: () -> AnimationSpec<Dp>,
-    private val maxOffsetDelta: Float,
+    private val maxCornerRadiusAtOffsetDelta: () -> Float,
     private val itemState: () -> ItemState<SnappyDraggedItemInfo>?,
 ) {
     private val topCornerRadiusAnimator = Animatable(calcTopCornerRadius(itemState()!!, minCornerRadius(), maxCornerRadius()), Dp.VectorConverter)
@@ -66,7 +66,7 @@ class ShapeHelper(
     }
 
     private fun calcRadius(offsetDelta: Float, minCornerRadius: Dp, maxCornerRadius: Dp): Dp {
-        val progress = (offsetDelta / maxOffsetDelta).coerceIn(0f, 1f)
+        val progress = (offsetDelta / maxCornerRadiusAtOffsetDelta()).coerceIn(0f, 1f)
         return (minCornerRadius + (maxCornerRadius - minCornerRadius) * progress)
     }
 
@@ -90,7 +90,7 @@ class ShapeHelper(
 fun rememberShapeHelper(
     minCornerRadius: () -> Dp,
     maxCornerRadius: () -> Dp,
-    maxAtOffsetDelta: Dp,
+    maxAtOffsetDelta: () -> Dp,
     itemState: () -> ItemState<SnappyDraggedItemInfo>?,
     animationSpec: () -> AnimationSpec<Dp>,
 ): ShapeHelper {
@@ -100,7 +100,7 @@ fun rememberShapeHelper(
         ShapeHelper(
             minCornerRadius = minCornerRadius,
             maxCornerRadius = maxCornerRadius,
-            maxOffsetDelta = with(density) { maxAtOffsetDelta.toPx() },
+            maxCornerRadiusAtOffsetDelta = { with(density) {maxAtOffsetDelta().toPx()} },
             itemState = itemState,
             animationSpec = animationSpec
         )

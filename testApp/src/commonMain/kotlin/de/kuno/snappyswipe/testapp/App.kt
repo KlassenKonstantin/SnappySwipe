@@ -31,7 +31,6 @@ import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.rememberRangeSliderState
 import androidx.compose.material3.rememberSliderState
@@ -44,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
@@ -136,12 +136,6 @@ fun App() {
                         Row(Modifier.padding(bottom = 8.dp)) {
                             Button(onClick = { listHolder.shuffle() }) {
                                 Text("Shuffle")
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            ToggleButton(snappyDragSettings.holdDrag, onCheckedChange = {
-                                snappyDragSettings.holdDrag = !snappyDragSettings.holdDrag
-                            }) {
-                                Text("Hold drag")
                             }
                         }
 
@@ -307,17 +301,21 @@ private fun TestList(
                 SnappyItem(
                     key = testItem.id,
                     dragCoordinatorState = state,
-                    modifier = Modifier.fillMaxWidth().animateItem(),
+                    modifier = Modifier.animateItem(),
                     onDismissed = {
                         onItemClicked(testItem)
                     },
                     settings = snappyDragSettings,
-                ) {
+                ) { provideShape ->
                     ListItem(
                         colors = ListItemDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                            .graphicsLayer {
+                                shape = provideShape()
+                                clip = true
+                            }.clickable {
                             onItemClicked(testItem)
                         },
                         headlineContent = {

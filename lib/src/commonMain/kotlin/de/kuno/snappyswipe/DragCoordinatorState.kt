@@ -19,8 +19,8 @@ import kotlin.math.min
 class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
     var dragInfo by mutableStateOf<T?>(null)
 
-    val itemOffsets = mutableStateMapOf<Any?, Float>()
-    val itemInfos = mutableStateOf<List<ItemInfo>>(listOf())
+    internal val itemOffsets = mutableStateMapOf<Any?, Float>()
+    internal val itemInfos = mutableStateOf<List<ItemInfo>>(listOf())
 
     private val itemLookup by derivedStateOf {
         itemInfos.value.associateBy { it.key }
