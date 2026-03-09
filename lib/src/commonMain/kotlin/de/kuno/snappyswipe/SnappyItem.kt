@@ -238,14 +238,51 @@ class SnappyDragSettings(
 
 @Composable
 fun rememberSnappyDragSettings(
+    /**
+     * From the edges, how far the item can be dragged before it unsticks from its neighbors.
+     */
     unstickDistance: Dp = 100.dp,
+
+    /**
+     * Distance from the edges at which the item will restick to its neighbors.
+     */
     restickDistance: Dp = 50.dp,
+
+    /**
+     * The minimum corner radius of the item used when the offset delta to its neighbors is 0f.
+     */
     minCornerRadius: Dp = 0.dp,
+
+    /**
+     * The maximum corner radius of the item used when the offset delta to its neighbors is >= [unstickDistance]
+     * or the segment type of its neighbor is different.
+     */
     maxCornerRadius: Dp = 24.dp,
-    affectedNeighbours: Int = 2,
+
+    /**
+     * How many items to the top and bottom are affected by the dragged item.
+     */
+    affectedNeighbors: Int = 2,
+
+    /**
+     * The animation spec used to animate the offset of affected items.
+     */
     offsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
+
+    /**
+     * The animation spec used to animate the offset of the dragged item.
+     */
     draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
+
+    /**
+     * The animation spec used to animate the corner radius of the item.
+     */
     cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = spring(),
+
+    /**
+     * Added friction to the dragged item when it is stuck to its neighbors.
+     * A value of 2f means that the dragged item moves at half the drag amount.
+     */
     friction: Float = 2f,
 ): SnappyDragSettings {
     return remember {
@@ -254,7 +291,7 @@ fun rememberSnappyDragSettings(
             restickDistance = restickDistance,
             minCornerRadius = minCornerRadius,
             maxCornerRadius = maxCornerRadius,
-            affectedNeighbours = affectedNeighbours,
+            affectedNeighbours = affectedNeighbors,
             offsetAnimationSpec = offsetAnimationSpec,
             draggedItemOffsetAnimationSpec = draggedItemOffsetAnimationSpec,
             cornerRadiusAnimationSpec = cornerRadiusAnimationSpec,
