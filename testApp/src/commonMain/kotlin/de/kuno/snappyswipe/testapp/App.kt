@@ -147,16 +147,16 @@ fun App() {
                                         modifier = Modifier.fillMaxHeight(),
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Text("Affected neighbours (1-5)")
+                                        Text("Affected neighbors (1-5)")
                                         Spacer(Modifier.height(8.dp))
                                         val sliderState = rememberSliderState(
-                                            value = snappyDragSettings.affectedNeighbours.toFloat(),
+                                            value = snappyDragSettings.affectedNeighbors.toFloat(),
                                             steps = 3,
                                             valueRange = 1f..5f,
                                         ).apply {
                                             onValueChange = {
                                                 value = it
-                                                snappyDragSettings.affectedNeighbours = it.toInt()
+                                                snappyDragSettings.affectedNeighbors = it.toInt()
                                             }
                                         }
 

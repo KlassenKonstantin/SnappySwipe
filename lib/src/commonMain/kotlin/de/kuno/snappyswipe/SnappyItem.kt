@@ -100,8 +100,8 @@ fun SnappyItem(
     LaunchedEffect(key) {
         combine(
             snapshotFlow { itemState() }.filterNotNull(),
-            snapshotFlow { settings.affectedNeighbours },
-        ) { itemState, affectedNeighbours ->
+            snapshotFlow { settings.affectedNeighbors },
+        ) { itemState, affectedNeighbors ->
             if (dismissing) return@combine
 
             launch(Dispatchers.Main.immediate) {
@@ -114,14 +114,14 @@ fun SnappyItem(
                 } else {
                     val draggedItemRelation = itemState.draggedItemRelation
                     val dragOffset = draggedItemRelation.draggedItemInfo.dragOffset
-                    val isAffected = draggedItemRelation.sameSegmentAsDraggedItem && draggedItemRelation.indexDelta.absoluteValue <= affectedNeighbours
+                    val isAffected = draggedItemRelation.sameSegmentAsDraggedItem && draggedItemRelation.indexDelta.absoluteValue <= affectedNeighbors
 
                     val offset = when {
                         // Follow the drag offset. Add friction if stuck
                         itemState.isDraggedItem -> dragOffset / if (draggedItemRelation.draggedItemInfo.stuck) settings.friction else 1f
 
-                        // Is one of the affected neighbours. The higher the distance to the dragged item, the less the offset
-                        draggedItemRelation.draggedItemInfo.stuck && isAffected -> dragOffset / (affectedNeighbours + 1) * ((affectedNeighbours + 1) - draggedItemRelation.indexDelta.absoluteValue) / settings.friction
+                        // Is one of the affected neighbors. The higher the distance to the dragged item, the less the offset
+                        draggedItemRelation.draggedItemInfo.stuck && isAffected -> dragOffset / (affectedNeighbors + 1) * ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue) / settings.friction
 
                         // Reset
                         else -> 0f
@@ -217,20 +217,20 @@ fun SnappyItem(
 class SnappyDragSettings(
     unstickDistance: Dp,
     restickDistance: Dp,
+    friction: Float,
     minCornerRadius: Dp,
     maxCornerRadius: Dp,
-    affectedNeighbours: Int,
+    affectedNeighbors: Int,
     offsetAnimationSpec: FiniteAnimationSpec<Float>,
     draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float>,
     cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp>,
-    friction: Float,
 ) {
     var unstickDistance by mutableStateOf(unstickDistance)
     var restickDistance by mutableStateOf(restickDistance)
+    var friction by mutableFloatStateOf(friction)
     var minCornerRadius by mutableStateOf(minCornerRadius)
     var maxCornerRadius by mutableStateOf(maxCornerRadius)
-    var affectedNeighbours by mutableIntStateOf(affectedNeighbours)
-    var friction by mutableFloatStateOf(friction)
+    var affectedNeighbors by mutableIntStateOf(affectedNeighbors)
     var offsetAnimationSpec by mutableStateOf(offsetAnimationSpec)
     var draggedItemOffsetAnimationSpec by mutableStateOf(draggedItemOffsetAnimationSpec)
     var cornerRadiusAnimationSpec by mutableStateOf(cornerRadiusAnimationSpec)
@@ -247,6 +247,12 @@ fun rememberSnappyDragSettings(
      * Distance from the edges at which the item will restick to its neighbors.
      */
     restickDistance: Dp = 50.dp,
+
+    /**
+     * Added friction to the dragged item when it is stuck to its neighbors.
+     * A value of 2f means that the dragged item moves at half the drag amount.
+     */
+    friction: Float = 2f,
 
     /**
      * The minimum corner radius of the item used when the offset delta to its neighbors is 0f.
@@ -278,24 +284,18 @@ fun rememberSnappyDragSettings(
      * The animation spec used to animate the corner radius of the item.
      */
     cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = spring(),
-
-    /**
-     * Added friction to the dragged item when it is stuck to its neighbors.
-     * A value of 2f means that the dragged item moves at half the drag amount.
-     */
-    friction: Float = 2f,
 ): SnappyDragSettings {
     return remember {
         SnappyDragSettings(
             unstickDistance = unstickDistance,
             restickDistance = restickDistance,
+            friction = friction,
             minCornerRadius = minCornerRadius,
             maxCornerRadius = maxCornerRadius,
-            affectedNeighbours = affectedNeighbors,
+            affectedNeighbors = affectedNeighbors,
             offsetAnimationSpec = offsetAnimationSpec,
             draggedItemOffsetAnimationSpec = draggedItemOffsetAnimationSpec,
             cornerRadiusAnimationSpec = cornerRadiusAnimationSpec,
-            friction = friction,
         )
     }
 }
