@@ -27,7 +27,7 @@ class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
      * SnappyItem reads and removes its own key to trigger a one-shot insertion animation.
      */
     internal val newlyInsertedKeys = mutableSetOf<Any>()
-    private var initialised = false
+    var initialised = false
 
     private val itemLookup by derivedStateOf {
         itemInfos.value.associateBy { it.key }
