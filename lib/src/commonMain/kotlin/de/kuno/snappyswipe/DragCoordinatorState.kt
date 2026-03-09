@@ -17,15 +17,28 @@ import kotlin.math.min
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
+    /**
+     * The item that is being dragged or null if no item is being dragged.
+     */
     var dragInfo by mutableStateOf<T?>(null)
 
+    /**
+     * Key -> Offset mapping for each item. Helpful to calculate the offset deltas between items.
+     */
     internal val itemOffsets = mutableStateMapOf<Any, Float>()
+
+    /**
+     * List of all items with their meta information.
+     */
     internal val itemInfos = mutableStateOf<List<ItemInfo>>(listOf())
 
     private val itemLookup by derivedStateOf {
         itemInfos.value.associateBy { it.key }
     }
 
+    /**
+     * Returns the state of the item with the given [key].
+     */
     fun getItemState(key: Any): ItemState<T>? {
         val index = itemLookup[key]?.index ?: return null
         val itemInfos = itemInfos.value
@@ -106,6 +119,9 @@ interface DraggedItemInfo {
     val dragOffset: Float
 }
 
+/**
+ * State of the item with information about its neighbors and its relation to the item that is being dragged.
+ */
 data class ItemState<T : DraggedItemInfo>(
     val draggedItemRelation: DraggedItemRelation<T>?,
     val itemInfo: ItemInfo,
