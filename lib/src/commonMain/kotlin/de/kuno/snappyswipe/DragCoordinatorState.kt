@@ -22,6 +22,13 @@ class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
     internal val itemOffsets = mutableStateMapOf<Any, Float>()
     internal val itemInfos = mutableStateOf<List<ItemInfo>>(listOf())
 
+    /**
+     * Keys of items that were newly inserted in the most recent list update.
+     * SnappyItem reads and removes its own key to trigger a one-shot insertion animation.
+     */
+    internal val newlyInsertedKeys = mutableSetOf<Any>()
+    private var initialised = false
+
     private val itemLookup by derivedStateOf {
         itemInfos.value.associateBy { it.key }
     }
@@ -36,7 +43,7 @@ class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
             itemOffsets[itemInfos.getOrNull(index + 1)?.key]
         )
 
-        val currentItem = itemInfos.first { it.key == key }.copy(
+        val currentItem = (itemLookup[key] ?: return null).copy(
             offset = offsets.first ?: 0f
         )
 
@@ -49,10 +56,11 @@ class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
         )
 
         val draggedItemRelation = dragInfo?.let { dragInfo ->
-            val draggedItemIndex = itemInfos.indexOfFirst { it.key == dragInfo.key }
+            val draggedItemLookup = itemLookup[dragInfo.key] ?: return@let null
+            val draggedItemIndex = draggedItemLookup.index
 
             if (index < 0 || draggedItemIndex < 0) return@let null
-            val draggedItemInfo = itemInfos[draggedItemIndex]
+            val draggedItemInfo = draggedItemLookup
 
             val distanceToDraggedItem = index - draggedItemIndex
             val sameSegmentAsDraggedItem = itemInfos.subList(
@@ -78,6 +86,13 @@ class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
     fun updateOffset(key: Any, offset: Float) {
         itemOffsets[key] = offset
     }
+
+    /**
+     * Returns true if this key was newly inserted (and consumes the flag so it only fires once).
+     */
+    fun consumeInsertionFlag(key: Any): Boolean {
+        return newlyInsertedKeys.remove(key)
+    }
 }
 
 @Composable
@@ -89,7 +104,7 @@ fun <D : DraggedItemInfo, T> rememberDragCoordinatorState(
     return remember {
         DragCoordinatorState<D>()
     }.apply {
-        itemInfos.value = items.mapIndexed { index, item ->
+        val newInfos = items.mapIndexed { index, item ->
             val key = key(item)
             ItemInfo(
                 key = key,
@@ -97,6 +112,15 @@ fun <D : DraggedItemInfo, T> rememberDragCoordinatorState(
                 segmentType = segmentType(item),
                 offset = 0f
             )
+        }
+        if (itemInfos.value != newInfos) {
+            if (initialised) {
+                val oldKeys = itemInfos.value.map { it.key }.toSet()
+                val insertedKeys = newInfos.map { it.key }.filter { it !in oldKeys }
+                newlyInsertedKeys.addAll(insertedKeys)
+            }
+            initialised = true
+            itemInfos.value = newInfos
         }
     }
 }

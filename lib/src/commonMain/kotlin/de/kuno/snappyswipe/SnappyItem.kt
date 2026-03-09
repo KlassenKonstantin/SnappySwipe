@@ -1,7 +1,9 @@
 package de.kuno.snappyswipe
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -46,8 +50,25 @@ fun SnappyItem(
 ) {
     var dismissing by remember(key) { mutableStateOf(false) }
 
+    // Insertion animation state
+    val isNewlyInserted = remember(key) {
+        dragCoordinatorState.consumeInsertionFlag(key)
+    }
+    val insertionProgress = remember(key) {
+        Animatable(if (isNewlyInserted) 0f else 1f)
+    }
+
+    if (isNewlyInserted) {
+        LaunchedEffect(key) {
+            insertionProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = settings.insertionAnimationSpec
+            )
+        }
+    }
+
     val offsetAnimatable = remember(key) { Animatable(0f) }
-    var width by remember { mutableStateOf(0) }
+    var width by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
 
@@ -72,22 +93,25 @@ fun SnappyItem(
     }
 
     LaunchedEffect(key) {
-        snapshotFlow { offsetAnimatable.value }.collect {
-            launch {
-                dragCoordinatorState.updateOffset(key, it)
-            }
+        snapshotFlow { offsetAnimatable.value }.collect { offset ->
+            dragCoordinatorState.updateOffset(key, offset)
         }
     }
 
-    val itemState = remember(key) {
+    val itemState = remember(key, dragCoordinatorState) {
         { dragCoordinatorState.getItemState(key) }
     }
 
+    val minCornerRadiusProvider = remember(settings) { { settings.minCornerRadius } }
+    val maxCornerRadiusProvider = remember(settings) { { settings.maxCornerRadius } }
+    val maxAtOffsetDeltaProvider = remember(settings) { { settings.unstickDistance / 2 } }
+    val animationSpecProvider = remember(settings) { { settings.cornerRadiusAnimationSpec } }
+
     val shapeHelper = rememberShapeHelper(
-        minCornerRadius = { settings.minCornerRadius },
-        maxCornerRadius = { settings.maxCornerRadius },
-        maxAtOffsetDelta = { settings.unstickDistance / 2 },
-        animationSpec = { settings.cornerRadiusAnimationSpec },
+        minCornerRadius = minCornerRadiusProvider,
+        maxCornerRadius = maxCornerRadiusProvider,
+        maxAtOffsetDelta = maxAtOffsetDeltaProvider,
+        animationSpec = animationSpecProvider,
         itemState = itemState,
     )
 
@@ -101,8 +125,9 @@ fun SnappyItem(
         combine(
             snapshotFlow { itemState() }.filterNotNull(),
             snapshotFlow { settings.affectedNeighbours },
-        ) { itemState, affectedNeighbours ->
-            if (dismissing) return@combine
+            snapshotFlow { dismissing },
+        ) { itemState, affectedNeighbours, isDismissing ->
+            if (isDismissing) return@combine
 
             launch(Dispatchers.Main.immediate) {
                 if (itemState.draggedItemRelation == null) {
@@ -202,18 +227,32 @@ fun SnappyItem(
             ),
     ) {
         Box(
-            modifier = Modifier.offset {
-                IntOffset(
-                    offsetAnimatable.value.toInt(),
-                    0
-                )
-            },
+            modifier = Modifier
+                .offset {
+                    IntOffset(
+                        offsetAnimatable.value.toInt(),
+                        0
+                    )
+                }
+                .graphicsLayer {
+                    val progress = insertionProgress.value
+                    if (progress < 1f) {
+                        // Slide in from the left
+                        translationX = (1f - progress) * -size.width * 0.6f
+                        // Scale up vertically for a "growing in" effect
+                        scaleY = 0.6f + 0.4f * progress
+                        scaleX = 0.85f + 0.15f * progress
+                        // Fade in
+                        alpha = progress.coerceIn(0f, 1f)
+                    }
+                },
         ) {
             content({ shapeHelper.shape })
         }
     }
 }
 
+@Stable
 class SnappyDragSettings(
     unstickDistance: Dp,
     restickDistance: Dp,
@@ -224,6 +263,7 @@ class SnappyDragSettings(
     draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float>,
     cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp>,
     friction: Float,
+    insertionAnimationSpec: AnimationSpec<Float>,
 ) {
     var unstickDistance by mutableStateOf(unstickDistance)
     var restickDistance by mutableStateOf(restickDistance)
@@ -234,6 +274,7 @@ class SnappyDragSettings(
     var offsetAnimationSpec by mutableStateOf(offsetAnimationSpec)
     var draggedItemOffsetAnimationSpec by mutableStateOf(draggedItemOffsetAnimationSpec)
     var cornerRadiusAnimationSpec by mutableStateOf(cornerRadiusAnimationSpec)
+    var insertionAnimationSpec by mutableStateOf(insertionAnimationSpec)
 }
 
 @Composable
@@ -247,6 +288,10 @@ fun rememberSnappyDragSettings(
     draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
     cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = spring(),
     friction: Float = 2f,
+    insertionAnimationSpec: AnimationSpec<Float> = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMedium,
+    ),
 ): SnappyDragSettings {
     return remember {
         SnappyDragSettings(
@@ -259,6 +304,7 @@ fun rememberSnappyDragSettings(
             draggedItemOffsetAnimationSpec = draggedItemOffsetAnimationSpec,
             cornerRadiusAnimationSpec = cornerRadiusAnimationSpec,
             friction = friction,
+            insertionAnimationSpec = insertionAnimationSpec,
         )
     }
 }

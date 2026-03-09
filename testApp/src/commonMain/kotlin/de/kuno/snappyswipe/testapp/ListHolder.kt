@@ -21,8 +21,23 @@ class ListHolder(
         }
     }
 
+    private var nextId = groups * (itemsPerGroup + 1)
+
     fun remove(item: Item) {
         list.value = list.value.filterNot { it.id == item.id }
+    }
+
+    fun addRandomItem() {
+        val currentList = list.value
+        // Find a random non-header position to insert after
+        val insertableIndices = currentList.indices.filter { !currentList[it].isHeader }
+        if (insertableIndices.isEmpty()) return
+        val insertAfterIndex = insertableIndices.random()
+        val id = nextId++
+        val newItem = Item(id = id, isHeader = false, text = "New Item $id")
+        list.value = currentList.toMutableList().apply {
+            add(insertAfterIndex + 1, newItem)
+        }
     }
 
     fun shuffle() {

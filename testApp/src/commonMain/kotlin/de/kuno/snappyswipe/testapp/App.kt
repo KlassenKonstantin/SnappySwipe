@@ -133,9 +133,15 @@ fun App() {
                     Column(
                         modifier = Modifier.height(200.dp).padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()
                     ) {
-                        Row(Modifier.padding(bottom = 8.dp)) {
+                        Row(
+                            Modifier.padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Button(onClick = { listHolder.shuffle() }) {
                                 Text("Shuffle")
+                            }
+                            Button(onClick = { listHolder.addRandomItem() }) {
+                                Text("Add Item")
                             }
                         }
 
