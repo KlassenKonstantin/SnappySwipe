@@ -6,6 +6,9 @@ class SnappyDragHelper(
     private val key: Any,
     private val unstickDistance: Float,
     private val restickDistance: Float,
+    private val dragDirection: DragDirection,
+    private val overdrag: Overdrag,
+    private val overdragFriction: Float = 10f,
     private val onStuck: () -> Unit = { },
     private val onUnstuck: () -> Unit = { },
 ) {
@@ -15,20 +18,31 @@ class SnappyDragHelper(
         initialOffset: Float,
     ) = SnappyDraggedItemInfo(
         key = key,
-        dragOffset = initialOffset,
+        dragOffset = initialOffset.restrictByDragDirection(dragDirection),
         stuck = initialOffset.absoluteValue < unstickDistance,
         unstuckProgress = (initialOffset.absoluteValue / unstickDistance).coerceAtMost(1f)
     ).also {
         dragInfo = it
     }
 
+    private fun Float.restrictByDragDirection(
+        dragDirection: DragDirection
+    ) = when (dragDirection) {
+        DragDirection.Left -> coerceAtMost(overdrag.maxOffset * overdragFriction)
+        DragDirection.Right -> coerceAtLeast(-overdrag.maxOffset * overdragFriction)
+        else -> this
+    }
+
     fun updateDragInfo(dragDelta: Float): SnappyDraggedItemInfo {
         val currentDragInfo = requireNotNull(dragInfo)
 
+        val newDragOffset = (currentDragInfo.dragOffset + dragDelta).restrictByDragDirection(dragDirection)
+
         val newStuck = if (currentDragInfo.stuck) {
-            currentDragInfo.dragOffset.absoluteValue < unstickDistance
+            val isOverDragging = newDragOffset < 0f && dragDirection == DragDirection.Right || newDragOffset > 0f && dragDirection == DragDirection.Left
+            if (isOverDragging) true else newDragOffset.absoluteValue < unstickDistance
         } else {
-            currentDragInfo.dragOffset.absoluteValue < restickDistance
+            newDragOffset.absoluteValue < restickDistance
         }
 
         if (newStuck != currentDragInfo.stuck) {
@@ -38,8 +52,6 @@ class SnappyDragHelper(
                 onUnstuck()
             }
         }
-
-        val newDragOffset = currentDragInfo.dragOffset + dragDelta
 
         val newUnstuckProgress = if (newStuck) {
             (newDragOffset / unstickDistance).coerceIn(0f, 1f)

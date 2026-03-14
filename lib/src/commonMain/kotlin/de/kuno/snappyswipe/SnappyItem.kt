@@ -40,8 +40,10 @@ fun SnappyItem(
     key: Any,
     modifier: Modifier = Modifier,
     dragCoordinatorState: DragCoordinatorState<SnappyDraggedItemInfo>,
-    onDismissed: () -> Unit,
     settings: SnappyDragSettings,
+    dragDirection: DragDirection,
+    overdrag: Overdrag,
+    onDismissed: () -> Unit,
     content: @Composable BoxScope.(() -> Shape) -> Unit,
 ) {
     var dismissing by remember(key) { mutableStateOf(false) }
@@ -54,13 +56,16 @@ fun SnappyItem(
     val snappyDragHelper = remember(
         key,
         settings.unstickDistance,
-        settings.restickDistance
+        settings.restickDistance,
+        dragDirection
     ) {
         density.run {
             SnappyDragHelper(
                 key = key,
                 unstickDistance = settings.unstickDistance.toPx(),
                 restickDistance = settings.restickDistance.toPx(),
+                dragDirection = dragDirection,
+                overdrag = overdrag,
                 onStuck = {
                     haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
                 },
@@ -115,13 +120,20 @@ fun SnappyItem(
                     val draggedItemRelation = itemState.draggedItemRelation
                     val dragOffset = draggedItemRelation.draggedItemInfo.dragOffset
                     val isAffected = draggedItemRelation.sameSegmentAsDraggedItem && draggedItemRelation.indexDelta.absoluteValue <= affectedNeighbors
+                    val isOverdragging = dragDirection == DragDirection.Left && dragOffset > 0 || dragDirection == DragDirection.Right && dragOffset < 0
+
+                    val draggedItemOffset = if (isOverdragging) {
+                        dragOffset / overdrag.friction
+                    } else {
+                        dragOffset / if (draggedItemRelation.draggedItemInfo.stuck) settings.friction else 1f
+                    }
 
                     val offset = when {
                         // Follow the drag offset. Add friction if stuck
-                        itemState.isDraggedItem -> dragOffset / if (draggedItemRelation.draggedItemInfo.stuck) settings.friction else 1f
+                        itemState.isDraggedItem -> draggedItemOffset
 
                         // Is one of the affected neighbors. The higher the distance to the dragged item, the less the offset
-                        draggedItemRelation.draggedItemInfo.stuck && isAffected -> dragOffset / (affectedNeighbors + 1) * ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue) / settings.friction
+                        draggedItemRelation.draggedItemInfo.stuck && isAffected -> draggedItemOffset / (affectedNeighbors + 1) * ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue)
 
                         // Reset
                         else -> 0f
@@ -182,9 +194,9 @@ fun SnappyItem(
                         dragCoordinatorState.dragInfo = null
 
                         val dismissRight =
-                            velocity >= DISMISS_MIN_VELOCITY || velocity >= 0f && !dragInfo.stuck && dragInfo.dragOffset >= 0f
+                            dragDirection != DragDirection.Left && velocity >= DISMISS_MIN_VELOCITY || velocity >= 0f && !dragInfo.stuck && dragInfo.dragOffset >= 0f
                         val dismissLeft =
-                            velocity <= -DISMISS_MIN_VELOCITY || velocity <= 0f && !dragInfo.stuck && dragInfo.dragOffset <= 0f
+                            dragDirection != DragDirection.Right && velocity <= -DISMISS_MIN_VELOCITY || velocity <= 0f && !dragInfo.stuck && dragInfo.dragOffset <= 0f
 
                         if (dismissRight || dismissLeft) {
                             if (dragInfo.stuck) {
@@ -317,5 +329,40 @@ data class SnappyDraggedItemInfo(
     val unstuckProgress: Float,
     val stuck: Boolean,
 ) : DraggedItemInfo
+
+enum class DragDirection {
+    Left, Right, Both
+}
+
+@Composable
+fun rememberOverdrag(
+    friction: Float = 10f,
+    maxOffset: Dp = 16.dp
+): Overdrag {
+    val density = LocalDensity.current
+
+    return remember(density) {
+        Overdrag.Enabled(
+            friction = friction,
+            maxOffset = density.run { maxOffset.toPx() }
+        )
+    }
+}
+
+sealed interface Overdrag {
+    val friction: Float
+    val maxOffset: Float
+
+    @ConsistentCopyVisibility
+    data class Enabled internal constructor(
+        override val friction: Float,
+        override val maxOffset: Float,
+    ) : Overdrag
+
+    data object Disabled : Overdrag {
+        override val friction: Float = Float.MAX_VALUE
+        override val maxOffset: Float = 0f
+    }
+}
 
 private const val DISMISS_MIN_VELOCITY = 4000f

@@ -47,8 +47,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
+import de.kuno.snappyswipe.DragDirection
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
+import de.kuno.snappyswipe.rememberOverdrag
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 import de.kuno.snappyswipe.rememberSnappyDragSettings
 
@@ -305,6 +307,8 @@ private fun TestList(
                     onDismissed = {
                         onItemClicked(testItem)
                     },
+                    dragDirection = DragDirection.Both,
+                    overdrag = rememberOverdrag(),
                     settings = snappyDragSettings,
                 ) { provideShape ->
                     ListItem(
@@ -320,7 +324,7 @@ private fun TestList(
                         },
                         headlineContent = {
                             Text(
-                                text = "${testItem.text}",
+                                text = testItem.text,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                             )
