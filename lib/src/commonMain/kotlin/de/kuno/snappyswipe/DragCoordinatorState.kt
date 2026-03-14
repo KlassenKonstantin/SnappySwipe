@@ -4,6 +4,8 @@ package de.kuno.snappyswipe
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -16,6 +18,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Stable
 class DragCoordinatorState<T : DraggedItemInfo> internal constructor() {
     /**
      * The item that is being dragged or null if no item is being dragged.
@@ -114,6 +117,7 @@ fun <D : DraggedItemInfo, T> rememberDragCoordinatorState(
     }
 }
 
+@Immutable
 interface DraggedItemInfo {
     val key: Any
     val dragOffset: Float

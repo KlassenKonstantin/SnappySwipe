@@ -43,13 +43,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import de.kuno.snappyswipe.DragDirection
+import de.kuno.snappyswipe.DragShapeSettings
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
+import de.kuno.snappyswipe.dragShape
+import de.kuno.snappyswipe.rememberDragShapeSettings
 import de.kuno.snappyswipe.rememberOverdrag
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 import de.kuno.snappyswipe.rememberSnappyDragSettings
@@ -63,6 +65,7 @@ fun App() {
 
     val listHolder = remember { ListHolder() }
     val snappyDragSettings = rememberSnappyDragSettings()
+    val dragShapeSettings = rememberDragShapeSettings()
 
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -117,7 +120,8 @@ fun App() {
                     onItemClicked = { item ->
                         listHolder.remove(item)
                     },
-                    snappyDragSettings = snappyDragSettings
+                    snappyDragSettings = snappyDragSettings,
+                    dragShapeSettings = dragShapeSettings,
                 )
 
                 Surface(
@@ -129,7 +133,7 @@ fun App() {
 
                     LaunchedEffect(bounciness, stiffness) {
                         snappyDragSettings.offsetAnimationSpec = spring(dampingRatio = bounciness, stiffness = stiffness)
-                        snappyDragSettings.cornerRadiusAnimationSpec = spring(dampingRatio = bounciness, stiffness = stiffness)
+                        dragShapeSettings.cornerRadiusAnimationSpec = spring(dampingRatio = bounciness, stiffness = stiffness)
                     }
 
                     Column(
@@ -174,18 +178,18 @@ fun App() {
                                         Text("Min & max corner radius (0-24dp)")
                                         Spacer(Modifier.height(8.dp))
                                         val sliderState = rememberRangeSliderState(
-                                            activeRangeStart = snappyDragSettings.minCornerRadius.value,
-                                            activeRangeEnd = snappyDragSettings.maxCornerRadius.value,
+                                            activeRangeStart = dragShapeSettings.minCornerRadius.value,
+                                            activeRangeEnd = dragShapeSettings.maxCornerRadius.value,
                                             steps = 22,
                                             valueRange = 0f..24f,
                                         )
 
                                         LaunchedEffect(sliderState.activeRangeStart) {
-                                            snappyDragSettings.minCornerRadius = sliderState.activeRangeStart.dp
+                                            dragShapeSettings.minCornerRadius = sliderState.activeRangeStart.dp
                                         }
 
                                         LaunchedEffect(sliderState.activeRangeEnd) {
-                                            snappyDragSettings.maxCornerRadius = sliderState.activeRangeEnd.dp
+                                            dragShapeSettings.maxCornerRadius = sliderState.activeRangeEnd.dp
                                         }
 
                                         RangeSlider(sliderState)
@@ -276,6 +280,7 @@ private fun TestList(
     items: List<Item>,
     onItemClicked: (Item) -> Unit,
     snappyDragSettings: SnappyDragSettings,
+    dragShapeSettings: DragShapeSettings,
 ) {
     val state = rememberSnappyDragCoordinatorState(
         items = items,
@@ -310,16 +315,17 @@ private fun TestList(
                     dragDirection = DragDirection.Both,
                     overdrag = rememberOverdrag(),
                     settings = snappyDragSettings,
-                ) { provideShape ->
+                ) {
                     ListItem(
                         colors = ListItemDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
                         modifier = Modifier.padding(horizontal = 16.dp)
-                            .graphicsLayer {
-                                shape = provideShape()
-                                clip = true
-                            }.clickable {
+                            .dragShape(
+                                key = testItem.id,
+                                settings = dragShapeSettings,
+                                dragCoordinatorState = state,
+                            ).clickable {
                             onItemClicked(testItem)
                         },
                         headlineContent = {

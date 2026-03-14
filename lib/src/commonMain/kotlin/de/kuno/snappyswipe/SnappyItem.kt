@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -20,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -44,7 +44,7 @@ fun SnappyItem(
     dragDirection: DragDirection,
     overdrag: Overdrag,
     onDismissed: () -> Unit,
-    content: @Composable BoxScope.(() -> Shape) -> Unit,
+    content: @Composable BoxScope.() -> Unit,
 ) {
     var dismissing by remember(key) { mutableStateOf(false) }
 
@@ -87,14 +87,6 @@ fun SnappyItem(
     val itemState = remember(key) {
         { dragCoordinatorState.getItemState(key) }
     }
-
-    val shapeHelper = rememberShapeHelper(
-        minCornerRadius = { settings.minCornerRadius },
-        maxCornerRadius = { settings.maxCornerRadius },
-        maxAtOffsetDelta = { settings.unstickDistance / 2 },
-        animationSpec = { settings.cornerRadiusAnimationSpec },
-        itemState = itemState,
-    )
 
     LaunchedEffect(Unit) {
         if (dragCoordinatorState.dragInfo?.key == key) {
@@ -221,31 +213,26 @@ fun SnappyItem(
                 )
             },
         ) {
-            content({ shapeHelper.shape })
+            content()
         }
     }
 }
 
+@Stable
 class SnappyDragSettings(
     unstickDistance: Dp,
     restickDistance: Dp,
     friction: Float,
-    minCornerRadius: Dp,
-    maxCornerRadius: Dp,
     affectedNeighbors: Int,
     offsetAnimationSpec: FiniteAnimationSpec<Float>,
     draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float>,
-    cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp>,
 ) {
     var unstickDistance by mutableStateOf(unstickDistance)
     var restickDistance by mutableStateOf(restickDistance)
     var friction by mutableFloatStateOf(friction)
-    var minCornerRadius by mutableStateOf(minCornerRadius)
-    var maxCornerRadius by mutableStateOf(maxCornerRadius)
     var affectedNeighbors by mutableIntStateOf(affectedNeighbors)
     var offsetAnimationSpec by mutableStateOf(offsetAnimationSpec)
     var draggedItemOffsetAnimationSpec by mutableStateOf(draggedItemOffsetAnimationSpec)
-    var cornerRadiusAnimationSpec by mutableStateOf(cornerRadiusAnimationSpec)
 }
 
 @Composable
@@ -267,17 +254,6 @@ fun rememberSnappyDragSettings(
     friction: Float = 2f,
 
     /**
-     * The minimum corner radius of the item used when the offset delta to its neighbors is 0f.
-     */
-    minCornerRadius: Dp = 0.dp,
-
-    /**
-     * The maximum corner radius of the item used when the offset delta to its neighbors is >= [unstickDistance]
-     * or the segment type of its neighbor is different.
-     */
-    maxCornerRadius: Dp = 24.dp,
-
-    /**
      * How many items to the top and bottom are affected by the dragged item.
      */
     affectedNeighbors: Int = 2,
@@ -291,23 +267,15 @@ fun rememberSnappyDragSettings(
      * The animation spec used to animate the offset of the dragged item.
      */
     draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
-
-    /**
-     * The animation spec used to animate the corner radius of the item.
-     */
-    cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = spring(),
 ): SnappyDragSettings {
     return remember {
         SnappyDragSettings(
             unstickDistance = unstickDistance,
             restickDistance = restickDistance,
             friction = friction,
-            minCornerRadius = minCornerRadius,
-            maxCornerRadius = maxCornerRadius,
             affectedNeighbors = affectedNeighbors,
             offsetAnimationSpec = offsetAnimationSpec,
             draggedItemOffsetAnimationSpec = draggedItemOffsetAnimationSpec,
-            cornerRadiusAnimationSpec = cornerRadiusAnimationSpec,
         )
     }
 }
@@ -323,6 +291,7 @@ fun <T> rememberSnappyDragCoordinatorState(
     segmentType = segmentType,
 )
 
+@Stable
 data class SnappyDraggedItemInfo(
     override val key: Any,
     override val dragOffset: Float,
