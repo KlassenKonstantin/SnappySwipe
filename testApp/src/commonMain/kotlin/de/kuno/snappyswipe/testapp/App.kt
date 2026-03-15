@@ -52,7 +52,6 @@ import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
 import de.kuno.snappyswipe.dragShape
 import de.kuno.snappyswipe.rememberDragShapeSettings
-import de.kuno.snappyswipe.rememberOverdrag
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 import de.kuno.snappyswipe.rememberSnappyDragSettings
 
@@ -312,8 +311,7 @@ private fun TestList(
                     onDismissed = {
                         onItemClicked(testItem)
                     },
-                    dragDirection = DragDirection.Both,
-                    overdrag = rememberOverdrag(),
+                    dragDirection = DragDirection.Left,
                     settings = snappyDragSettings,
                 ) {
                     ListItem(

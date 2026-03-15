@@ -42,7 +42,7 @@ fun SnappyItem(
     dragCoordinatorState: DragCoordinatorState<SnappyDraggedItemInfo>,
     settings: SnappyDragSettings,
     dragDirection: DragDirection,
-    overdrag: Overdrag,
+    overdrag: Overdrag = rememberOverdrag(),
     onDismissed: () -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -153,8 +153,8 @@ fun SnappyItem(
 
     DisposableEffect(key) {
         onDispose {
+            snappyDragHelper.reset()
             if (draggedKey() == key) {
-                snappyDragHelper.reset()
                 dragCoordinatorState.dragInfo = null
             }
         }
@@ -305,7 +305,7 @@ enum class DragDirection {
 
 @Composable
 fun rememberOverdrag(
-    friction: Float = 10f,
+    friction: Float = 15f,
     maxOffset: Dp = 16.dp
 ): Overdrag {
     val density = LocalDensity.current
@@ -328,7 +328,7 @@ sealed interface Overdrag {
         override val maxOffset: Float,
     ) : Overdrag
 
-    data object Disabled : Overdrag {
+    data object None : Overdrag {
         override val friction: Float = Float.MAX_VALUE
         override val maxOffset: Float = 0f
     }
