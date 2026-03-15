@@ -9,8 +9,8 @@ class SnappyDragHelper(
     private val dragDirection: DragDirection,
     private val overdrag: Overdrag,
     private val overdragFriction: Float = 10f,
-    private val onStuck: () -> Unit = { },
-    private val onUnstuck: () -> Unit = { },
+    private val onRestick: () -> Unit = { },
+    private val onUnstick: () -> Unit = { },
 ) {
     var dragInfo: SnappyDraggedItemInfo? = null
 
@@ -47,9 +47,9 @@ class SnappyDragHelper(
 
         if (newStuck != currentDragInfo.stuck) {
             if (newStuck) {
-                onStuck()
+                onRestick()
             } else {
-                onUnstuck()
+                onUnstick()
             }
         }
 

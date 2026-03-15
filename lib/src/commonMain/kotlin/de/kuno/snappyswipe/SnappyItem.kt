@@ -2,7 +2,6 @@ package de.kuno.snappyswipe
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -11,13 +10,13 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -27,10 +26,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -41,9 +37,11 @@ fun SnappyItem(
     dragCoordinatorState: DragCoordinatorState<SnappyDraggedItemInfo>,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    settings: SnappyDragSettings = rememberSnappyDragSettings(),
+    settings: SnappyDragSettings = SnappySwipeDefaults.settings(),
     dragDirection: DragDirection= DragDirection.Both,
-    overdrag: Overdrag = rememberOverdrag(),
+    overdrag: Overdrag = SnappySwipeDefaults.overdrag(),
+    onUnstick: (() -> Unit)? = null,
+    onRestick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     var dismissing by remember(key) { mutableStateOf(false) }
@@ -52,6 +50,9 @@ fun SnappyItem(
     var width by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
+
+    val unstickHapticFeedbackType by rememberUpdatedState(settings.unstickHapticFeedbackType)
+    val restickHapticFeedbackType by rememberUpdatedState(settings.restickHapticFeedbackType)
 
     val snappyDragHelper = remember(
         key,
@@ -66,12 +67,14 @@ fun SnappyItem(
                 restickDistance = settings.restickDistance.toPx(),
                 dragDirection = dragDirection,
                 overdrag = overdrag,
-                onStuck = {
-                    haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                onUnstick = {
+                    unstickHapticFeedbackType?.let(haptics::performHapticFeedback)
+                    onUnstick?.invoke()
                 },
-                onUnstuck = {
-                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                }
+                onRestick = {
+                    restickHapticFeedbackType?.let(haptics::performHapticFeedback)
+                    onRestick?.invoke()
+                },
             )
         }
     }
@@ -94,12 +97,9 @@ fun SnappyItem(
         }
     }
 
-    LaunchedEffect(key) {
-        combine(
-            snapshotFlow { itemState() }.filterNotNull(),
-            snapshotFlow { settings.affectedNeighbors },
-        ) { itemState, affectedNeighbors ->
-            if (dismissing) return@combine
+    LaunchedEffect(key, settings.affectedNeighbors) {
+        snapshotFlow { itemState() }.filterNotNull().collect { itemState ->
+            if (dismissing) return@collect
 
             launch(Dispatchers.Main.immediate) {
                 if (itemState.draggedItemRelation == null) {
@@ -111,7 +111,7 @@ fun SnappyItem(
                 } else {
                     val draggedItemRelation = itemState.draggedItemRelation
                     val dragOffset = draggedItemRelation.draggedItemInfo.dragOffset
-                    val isAffected = draggedItemRelation.sameSegmentAsDraggedItem && draggedItemRelation.indexDelta.absoluteValue <= affectedNeighbors
+                    val isAffected = draggedItemRelation.sameSegmentAsDraggedItem && draggedItemRelation.indexDelta.absoluteValue <= settings.affectedNeighbors
                     val isOverdragging = dragDirection == DragDirection.Left && dragOffset > 0 || dragDirection == DragDirection.Right && dragOffset < 0
 
                     val draggedItemOffset = if (isOverdragging) {
@@ -125,7 +125,7 @@ fun SnappyItem(
                         itemState.isDraggedItem -> draggedItemOffset
 
                         // Is one of the affected neighbors. The higher the distance to the dragged item, the less the offset
-                        draggedItemRelation.draggedItemInfo.stuck && isAffected -> draggedItemOffset / (affectedNeighbors + 1) * ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue)
+                        draggedItemRelation.draggedItemInfo.stuck && isAffected -> draggedItemOffset / (settings.affectedNeighbors + 1) * ((settings.affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue)
 
                         // Reset
                         else -> 0f
@@ -144,7 +144,7 @@ fun SnappyItem(
                     }
                 }
             }
-        }.collect()
+        }
     }
 
     val draggedKey = {
@@ -192,7 +192,7 @@ fun SnappyItem(
 
                         if (dismissRight || dismissLeft) {
                             if (dragInfo.stuck) {
-                                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                                unstickHapticFeedbackType?.let(haptics::performHapticFeedback)
                             }
                             dismissing = true
                             offsetAnimatable.animateTo(
@@ -218,67 +218,17 @@ fun SnappyItem(
     }
 }
 
-@Stable
-class SnappyDragSettings(
-    unstickDistance: Dp,
-    restickDistance: Dp,
-    friction: Float,
-    affectedNeighbors: Int,
-    offsetAnimationSpec: FiniteAnimationSpec<Float>,
-    draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float>,
-) {
-    var unstickDistance by mutableStateOf(unstickDistance)
-    var restickDistance by mutableStateOf(restickDistance)
-    var friction by mutableFloatStateOf(friction)
-    var affectedNeighbors by mutableIntStateOf(affectedNeighbors)
-    var offsetAnimationSpec by mutableStateOf(offsetAnimationSpec)
-    var draggedItemOffsetAnimationSpec by mutableStateOf(draggedItemOffsetAnimationSpec)
-}
-
-@Composable
-fun rememberSnappyDragSettings(
-    /**
-     * From the edges, how far the item can be dragged before it unsticks from its neighbors.
-     */
-    unstickDistance: Dp = 100.dp,
-
-    /**
-     * Distance from the edges at which the item will restick to its neighbors.
-     */
-    restickDistance: Dp = 50.dp,
-
-    /**
-     * Added friction to the dragged item when it is stuck to its neighbors.
-     * A value of 2f means that the dragged item moves at half the drag amount.
-     */
-    friction: Float = 2f,
-
-    /**
-     * How many items to the top and bottom are affected by the dragged item.
-     */
-    affectedNeighbors: Int = 2,
-
-    /**
-     * The animation spec used to animate the offset of affected items.
-     */
-    offsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
-
-    /**
-     * The animation spec used to animate the offset of the dragged item.
-     */
-    draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
-): SnappyDragSettings {
-    return remember {
-        SnappyDragSettings(
-            unstickDistance = unstickDistance,
-            restickDistance = restickDistance,
-            friction = friction,
-            affectedNeighbors = affectedNeighbors,
-            offsetAnimationSpec = offsetAnimationSpec,
-            draggedItemOffsetAnimationSpec = draggedItemOffsetAnimationSpec,
-        )
-    }
-}
+@Immutable
+data class SnappyDragSettings(
+    val unstickDistance: Dp,
+    val restickDistance: Dp,
+    val friction: Float,
+    val affectedNeighbors: Int,
+    val offsetAnimationSpec: FiniteAnimationSpec<Float>,
+    val draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float>,
+    val unstickHapticFeedbackType: HapticFeedbackType?,
+    val restickHapticFeedbackType: HapticFeedbackType?,
+)
 
 @Composable
 fun <T> rememberSnappyDragCoordinatorState(
@@ -291,7 +241,7 @@ fun <T> rememberSnappyDragCoordinatorState(
     segmentType = segmentType,
 )
 
-@Stable
+@Immutable
 data class SnappyDraggedItemInfo(
     override val key: Any,
     override val dragOffset: Float,
@@ -303,35 +253,10 @@ enum class DragDirection {
     Left, Right, Both
 }
 
-@Composable
-fun rememberOverdrag(
-    friction: Float = 15f,
-    maxOffset: Dp = 16.dp
-): Overdrag {
-    val density = LocalDensity.current
-
-    return remember(density) {
-        Overdrag.Enabled(
-            friction = friction,
-            maxOffset = density.run { maxOffset.toPx() }
-        )
-    }
-}
-
-sealed interface Overdrag {
-    val friction: Float
-    val maxOffset: Float
-
-    @ConsistentCopyVisibility
-    data class Enabled internal constructor(
-        override val friction: Float,
-        override val maxOffset: Float,
-    ) : Overdrag
-
-    data object None : Overdrag {
-        override val friction: Float = Float.MAX_VALUE
-        override val maxOffset: Float = 0f
-    }
-}
+@Immutable
+data class Overdrag(
+    val friction: Float,
+    val maxOffset: Float,
+)
 
 private const val DISMISS_MIN_VELOCITY = 4000f

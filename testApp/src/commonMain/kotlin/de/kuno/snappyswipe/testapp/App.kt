@@ -36,7 +36,9 @@ import androidx.compose.material3.rememberRangeSliderState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,10 +52,10 @@ import de.kuno.snappyswipe.DragDirection
 import de.kuno.snappyswipe.DragShapeSettings
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
+import de.kuno.snappyswipe.SnappySwipeDefaults
 import de.kuno.snappyswipe.dragShape
 import de.kuno.snappyswipe.rememberDragShapeSettings
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
-import de.kuno.snappyswipe.rememberSnappyDragSettings
 
 @Composable
 @Preview
@@ -63,7 +65,25 @@ fun App() {
     )
 
     val listHolder = remember { ListHolder() }
-    val snappyDragSettings = rememberSnappyDragSettings()
+
+    var bounciness by remember { mutableStateOf(Spring.DampingRatioNoBouncy) }
+    var stiffness by remember { mutableStateOf(Spring.StiffnessMedium) }
+    val offsetAnimationSpec by remember(bounciness, stiffness) {
+        derivedStateOf {
+            spring<Float>(dampingRatio = bounciness, stiffness = stiffness)
+        }
+    }
+    var unstickDistance by remember { mutableStateOf(SnappySwipeDefaults.UnstickDistance) }
+    var restickDistance by remember { mutableStateOf(SnappySwipeDefaults.RestickDistance) }
+
+    var affectedNeighbors by remember { mutableIntStateOf(SnappySwipeDefaults.AffectedNeighbors) }
+
+    val snappyDragSettings = SnappySwipeDefaults.settings(
+        unstickDistance = unstickDistance,
+        restickDistance = restickDistance,
+        offsetAnimationSpec = offsetAnimationSpec,
+        affectedNeighbors = affectedNeighbors,
+    )
     val dragShapeSettings = rememberDragShapeSettings()
 
     MaterialTheme(
@@ -127,16 +147,14 @@ fun App() {
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
-                    var bounciness by remember { mutableStateOf(Spring.DampingRatioNoBouncy) }
-                    var stiffness by remember { mutableStateOf(Spring.StiffnessMedium) }
-
                     LaunchedEffect(bounciness, stiffness) {
-                        snappyDragSettings.offsetAnimationSpec = spring(dampingRatio = bounciness, stiffness = stiffness)
-                        dragShapeSettings.cornerRadiusAnimationSpec = spring(dampingRatio = bounciness, stiffness = stiffness)
+                        dragShapeSettings.cornerRadiusAnimationSpec =
+                            spring(dampingRatio = bounciness, stiffness = stiffness)
                     }
 
                     Column(
-                        modifier = Modifier.height(200.dp).padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()
+                        modifier = Modifier.height(200.dp)
+                            .padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()
                     ) {
                         Row(Modifier.padding(bottom = 8.dp)) {
                             Button(onClick = { listHolder.shuffle() }) {
@@ -146,7 +164,7 @@ fun App() {
 
                         val pagerState = rememberPagerState { 4 }
                         VerticalPager(pagerState) { page ->
-                            when(page) {
+                            when (page) {
                                 0 -> {
                                     Column(
                                         modifier = Modifier.fillMaxHeight(),
@@ -161,7 +179,7 @@ fun App() {
                                         ).apply {
                                             onValueChange = {
                                                 value = it
-                                                snappyDragSettings.affectedNeighbors = it.toInt()
+                                                affectedNeighbors = it.toInt()
                                             }
                                         }
 
@@ -184,11 +202,13 @@ fun App() {
                                         )
 
                                         LaunchedEffect(sliderState.activeRangeStart) {
-                                            dragShapeSettings.minCornerRadius = sliderState.activeRangeStart.dp
+                                            dragShapeSettings.minCornerRadius =
+                                                sliderState.activeRangeStart.dp
                                         }
 
                                         LaunchedEffect(sliderState.activeRangeEnd) {
-                                            dragShapeSettings.maxCornerRadius = sliderState.activeRangeEnd.dp
+                                            dragShapeSettings.maxCornerRadius =
+                                                sliderState.activeRangeEnd.dp
                                         }
 
                                         RangeSlider(sliderState)
@@ -210,11 +230,11 @@ fun App() {
                                         )
 
                                         LaunchedEffect(sliderState.activeRangeStart) {
-                                            snappyDragSettings.restickDistance = sliderState.activeRangeStart.dp
+                                            restickDistance = sliderState.activeRangeStart.dp
                                         }
 
                                         LaunchedEffect(sliderState.activeRangeEnd) {
-                                            snappyDragSettings.unstickDistance = sliderState.activeRangeEnd.dp
+                                            unstickDistance = sliderState.activeRangeEnd.dp
                                         }
 
                                         RangeSlider(sliderState)
@@ -324,8 +344,8 @@ private fun TestList(
                                 settings = dragShapeSettings,
                                 dragCoordinatorState = state,
                             ).clickable {
-                            onItemClicked(testItem)
-                        },
+                                onItemClicked(testItem)
+                            },
                         headlineContent = {
                             Text(
                                 text = testItem.text,
