@@ -53,7 +53,6 @@ import de.kuno.snappyswipe.DragShapeSettings
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
 import de.kuno.snappyswipe.SnappySwipeDefaults
-import de.kuno.snappyswipe.dragShape
 import de.kuno.snappyswipe.rememberDragShapeSettings
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 
@@ -340,9 +339,7 @@ private fun TestList(
                         ),
                         modifier = Modifier.padding(horizontal = 16.dp)
                             .dragShape(
-                                key = testItem.id,
                                 settings = dragShapeSettings,
-                                dragCoordinatorState = state,
                             ).clickable {
                                 onItemClicked(testItem)
                             },

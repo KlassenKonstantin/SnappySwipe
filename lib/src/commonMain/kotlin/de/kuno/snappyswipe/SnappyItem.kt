@@ -6,12 +6,12 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,7 +42,7 @@ fun SnappyItem(
     overdrag: Overdrag = SnappySwipeDefaults.overdrag(),
     onUnstick: (() -> Unit)? = null,
     onRestick: (() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit,
+    content: @Composable SnappyItemScope.() -> Unit,
 ) {
     var dismissing by remember(key) { mutableStateOf(false) }
 
@@ -213,7 +213,12 @@ fun SnappyItem(
                 )
             },
         ) {
-            content()
+            val scope = remember(key, dragCoordinatorState, settings) {
+                SnappyItemScopeImpl(key, dragCoordinatorState)
+            }
+            with(scope) {
+                content()
+            }
         }
     }
 }
@@ -260,3 +265,25 @@ data class Overdrag(
 )
 
 private const val DISMISS_MIN_VELOCITY = 4000f
+
+interface SnappyItemScope {
+    @Stable
+    @Composable
+    fun Modifier.dragShape(
+        settings: DragShapeSettings
+    ): Modifier
+}
+
+internal class SnappyItemScopeImpl(
+    private val key: Any,
+    private val dragCoordinatorState: DragCoordinatorState<out DraggedItemInfo>,
+) : SnappyItemScope {
+    @Composable
+    override fun Modifier.dragShape(
+        settings: DragShapeSettings
+    ) = this.dragShape(
+        key = key,
+        dragCoordinatorState = dragCoordinatorState,
+        settings = settings,
+    )
+}

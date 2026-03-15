@@ -28,8 +28,6 @@ val dragCoordinatorState = rememberSnappyDragCoordinatorState(
     key = { it }, // Same as key of LazyColumn item
 )
 
-val settings = rememberSnappyDragSettings()
-
 LazyColumn(
     verticalArrangement = Arrangement.spacedBy(2.dp),
 ) {
@@ -43,17 +41,14 @@ LazyColumn(
             onDismissed = {
                 // Remove item
             },
-            settings = settings
-        ) { provideShape ->
+        ) {
             ListItem(
                 colors = ListItemDefaults.colors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
-                modifier = Modifier.padding(horizontal = 16.dp)
-                    .graphicsLayer {
-                        shape = provideShape()
-                        clip = true
-                    },
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .dragShape(), // Use this for automatic rounded corner updates based on offset deltas between neighbors.
                 headlineContent = {
                     Text(
                         text = item,
