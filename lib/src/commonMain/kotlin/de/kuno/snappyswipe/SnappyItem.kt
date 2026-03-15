@@ -38,18 +38,18 @@ import kotlin.math.absoluteValue
 @Composable
 fun SnappyItem(
     key: Any,
-    modifier: Modifier = Modifier,
     dragCoordinatorState: DragCoordinatorState<SnappyDraggedItemInfo>,
-    settings: SnappyDragSettings,
-    dragDirection: DragDirection,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    settings: SnappyDragSettings = rememberSnappyDragSettings(),
+    dragDirection: DragDirection= DragDirection.Both,
     overdrag: Overdrag = rememberOverdrag(),
-    onDismissed: () -> Unit,
     content: @Composable BoxScope.() -> Unit,
 ) {
     var dismissing by remember(key) { mutableStateOf(false) }
 
     val offsetAnimatable = remember(key) { Animatable(0f) }
-    var width by remember { mutableStateOf(0) }
+    var width by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
 
@@ -199,7 +199,7 @@ fun SnappyItem(
                                 targetValue = (if (dismissRight) width else -width).toFloat(),
                                 initialVelocity = velocity,
                             )
-                            onDismissed()
+                            onDismiss()
                         }
                     }
                 }

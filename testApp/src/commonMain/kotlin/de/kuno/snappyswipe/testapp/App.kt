@@ -308,7 +308,7 @@ private fun TestList(
                     key = testItem.id,
                     dragCoordinatorState = state,
                     modifier = Modifier.animateItem(),
-                    onDismissed = {
+                    onDismiss = {
                         onItemClicked(testItem)
                     },
                     dragDirection = DragDirection.Left,

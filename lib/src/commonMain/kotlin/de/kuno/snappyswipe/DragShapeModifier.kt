@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun Modifier.dragShape(
     key: Any,
-    settings: DragShapeSettings = rememberDragShapeSettings(),
     dragCoordinatorState: DragCoordinatorState<out DraggedItemInfo>,
+    settings: DragShapeSettings = rememberDragShapeSettings(),
 ): Modifier {
     val shapeHelper = rememberShapeHelper(
         itemState = { dragCoordinatorState.getItemState(key) },

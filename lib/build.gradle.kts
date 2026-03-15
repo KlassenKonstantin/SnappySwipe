@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.mavenPublish)
+    alias(libs.plugins.detekt)
 }
 
 kotlin {
@@ -53,8 +54,14 @@ kotlin {
     }
 }
 
+detekt {
+    source.setFrom("src/commonMain/kotlin")
+    config.setFrom(files("detekt.yml"))
+}
+
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
+    detektPlugins("io.nlopez.compose.rules:detekt:0.5.6")
 }
 
 mavenPublishing {
