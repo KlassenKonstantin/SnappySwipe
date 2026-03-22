@@ -54,7 +54,6 @@ import de.kuno.snappyswipe.DragShapeSettings
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
 import de.kuno.snappyswipe.SnappySwipeDefaults
-import de.kuno.snappyswipe.rememberDragShapeSettings
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 import de.kuno.snappyswipe.rememberSnappyDragState
 import kotlinx.coroutines.launch
@@ -78,6 +77,9 @@ fun App() {
     var unstickDistance by remember { mutableStateOf(SnappySwipeDefaults.UnstickDistance) }
     var restickDistance by remember { mutableStateOf(SnappySwipeDefaults.RestickDistance) }
 
+    var minCornerRadius by remember { mutableStateOf(0.dp) }
+    var maxCornerRadius by remember { mutableStateOf(24.dp) }
+
     var affectedNeighbors by remember { mutableIntStateOf(SnappySwipeDefaults.AffectedNeighbors) }
 
     val snappyDragSettings = SnappySwipeDefaults.settings(
@@ -85,7 +87,10 @@ fun App() {
         restickDistance = restickDistance,
         offsetAnimationSpec = offsetAnimationSpec,
     )
-    val dragShapeSettings = rememberDragShapeSettings()
+    val dragShapeSettings = SnappySwipeDefaults.shapeSettings(
+        minCornerRadius = minCornerRadius,
+        maxCornerRadius = maxCornerRadius,
+    )
 
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -149,10 +154,10 @@ fun App() {
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
-                    LaunchedEffect(bounciness, stiffness) {
-                        dragShapeSettings.cornerRadiusAnimationSpec =
-                            spring(dampingRatio = bounciness, stiffness = stiffness)
-                    }
+//                    LaunchedEffect(bounciness, stiffness) {
+//                        dragShapeSettings.cornerRadiusAnimationSpec =
+//                            spring(dampingRatio = bounciness, stiffness = stiffness)
+//                    }
 
                     Column(
                         modifier = Modifier.height(200.dp)
@@ -204,13 +209,11 @@ fun App() {
                                         )
 
                                         LaunchedEffect(sliderState.activeRangeStart) {
-                                            dragShapeSettings.minCornerRadius =
-                                                sliderState.activeRangeStart.dp
+                                            minCornerRadius = sliderState.activeRangeStart.dp
                                         }
 
                                         LaunchedEffect(sliderState.activeRangeEnd) {
-                                            dragShapeSettings.maxCornerRadius =
-                                                sliderState.activeRangeEnd.dp
+                                            maxCornerRadius = sliderState.activeRangeEnd.dp
                                         }
 
                                         RangeSlider(sliderState)

@@ -12,14 +12,20 @@ import androidx.compose.ui.unit.dp
 object SnappySwipeDefaults {
     val UnstickDistance = 100.dp
     val RestickDistance = 50.dp
+
     val UnstickHapticFeedbackType = HapticFeedbackType.Confirm
     val RestickHapticFeedbackType = HapticFeedbackType.SegmentTick
+
     const val Friction = 2f
     const val AffectedNeighbors = 2
     const val DismissMinVelocity = 4000f // Todo, not yet used
 
     const val OverdragFriction = 15f
     val OverdragMaxOffset = 16.dp
+
+    val MinRadius = 0.dp
+    val MaxRadius = 24.dp
+    val MaxCornerRadiusAtOffsetDelta = 48.dp
 
     /**
      * Drag settings for the [SnappyDragState].
@@ -70,6 +76,37 @@ object SnappySwipeDefaults {
                 draggedItemOffsetAnimationSpec = draggedItemOffsetAnimationSpec,
                 unstickHapticFeedbackType = unstickHapticFeedbackType,
                 restickHapticFeedbackType = restickHapticFeedbackType
+            )
+        }
+    }
+
+    /**
+     * Creates and remembers a [DragShapeSettings] instance.
+     *
+     * @param minCornerRadius The minimum corner radius of the item used when the offset delta to its neighbors is 0f.
+     * @param maxCornerRadius The maximum corner radius of the item used when the offset delta to its neighbors is >= [maxCornerRadiusAtOffsetDelta]
+     * or the segment type of its neighbor is different.
+     * @param maxCornerRadiusAtOffsetDelta The offset delta to its neighbors from which the [maxCornerRadius] is used.
+     * @param cornerRadiusAnimationSpec The animation spec used to animate the corner radius of the item.
+     */
+    @Composable
+    fun shapeSettings(
+        minCornerRadius: Dp = MinRadius,
+        maxCornerRadius: Dp = MaxRadius,
+        maxCornerRadiusAtOffsetDelta: Dp = MaxCornerRadiusAtOffsetDelta,
+        cornerRadiusAnimationSpec: FiniteAnimationSpec<Dp> = spring(),
+    ): DragShapeSettings {
+        return remember(
+            minCornerRadius,
+            maxCornerRadius,
+            maxCornerRadiusAtOffsetDelta,
+            cornerRadiusAnimationSpec,
+        ) {
+            DragShapeSettings(
+                minCornerRadius = minCornerRadius,
+                maxCornerRadius = maxCornerRadius,
+                maxCornerRadiusAtOffsetDelta = maxCornerRadiusAtOffsetDelta,
+                cornerRadiusAnimationSpec = cornerRadiusAnimationSpec,
             )
         }
     }

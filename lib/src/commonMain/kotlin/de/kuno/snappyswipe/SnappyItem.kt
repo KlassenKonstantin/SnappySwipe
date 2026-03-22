@@ -162,7 +162,7 @@ interface SnappyItemScope {
     @Stable
     @Composable
     fun Modifier.dragShape(
-        settings: DragShapeSettings
+        settings: DragShapeSettings = SnappySwipeDefaults.shapeSettings()
     ): Modifier
 }
 
