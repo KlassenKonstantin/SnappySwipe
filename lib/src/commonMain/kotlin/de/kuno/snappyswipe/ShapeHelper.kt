@@ -93,11 +93,6 @@ class ShapeHelper internal constructor(
         }.collect()
     }
 
-    private fun calcRadius(offsetDelta: Float, minCornerRadius: Dp, maxCornerRadius: Dp): Dp {
-        val progress = (offsetDelta / density.run { settings.maxCornerRadiusAtOffsetDelta.toPx() }).coerceIn(0f, 1f)
-        return (minCornerRadius + (maxCornerRadius - minCornerRadius) * progress)
-    }
-
     private fun calcTopCornerRadius(itemState: ItemState<out DraggedItemInfo>?, minCornerRadius: Dp, maxCornerRadius: Dp): Dp {
         return when {
             itemState == null -> minCornerRadius
@@ -112,6 +107,11 @@ class ShapeHelper internal constructor(
             !itemState.sameSegmentAsBottomNeighbor -> maxCornerRadius
             else -> calcRadius(itemState.offsetDeltaBottom, minCornerRadius, maxCornerRadius)
         }
+    }
+
+    private fun calcRadius(offsetDelta: Float, minCornerRadius: Dp, maxCornerRadius: Dp): Dp {
+        val progress = (offsetDelta / density.run { settings.maxCornerRadiusAtOffsetDelta.toPx() }).coerceIn(0f, 1f)
+        return (minCornerRadius + (maxCornerRadius - minCornerRadius) * progress)
     }
 }
 

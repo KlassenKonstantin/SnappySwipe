@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,13 +49,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
-import de.kuno.snappyswipe.DragDirection
+import de.kuno.snappyswipe.Direction
 import de.kuno.snappyswipe.DragShapeSettings
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
 import de.kuno.snappyswipe.SnappySwipeDefaults
 import de.kuno.snappyswipe.rememberDragShapeSettings
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
+import de.kuno.snappyswipe.rememberSnappyDragState
+import kotlinx.coroutines.launch
 
 @Composable
 @Preview
@@ -81,7 +84,6 @@ fun App() {
         unstickDistance = unstickDistance,
         restickDistance = restickDistance,
         offsetAnimationSpec = offsetAnimationSpec,
-        affectedNeighbors = affectedNeighbors,
     )
     val dragShapeSettings = rememberDragShapeSettings()
 
@@ -135,11 +137,12 @@ fun App() {
                 TestList(
                     modifier = Modifier.weight(1f).statusBarsPadding(),
                     items = listHolder.list.value,
-                    onItemClicked = { item ->
+                    onDismiss = { item ->
                         listHolder.remove(item)
                     },
                     snappyDragSettings = snappyDragSettings,
                     dragShapeSettings = dragShapeSettings,
+                    affectedNeighbors = affectedNeighbors,
                 )
 
                 Surface(
@@ -172,7 +175,7 @@ fun App() {
                                         Text("Affected neighbors (1-5)")
                                         Spacer(Modifier.height(8.dp))
                                         val sliderState = rememberSliderState(
-                                            value = snappyDragSettings.affectedNeighbors.toFloat(),
+                                            value = affectedNeighbors.toFloat(),
                                             steps = 3,
                                             valueRange = 1f..5f,
                                         ).apply {
@@ -296,7 +299,8 @@ fun App() {
 private fun TestList(
     modifier: Modifier = Modifier,
     items: List<Item>,
-    onItemClicked: (Item) -> Unit,
+    affectedNeighbors: Int,
+    onDismiss: (Item) -> Unit,
     snappyDragSettings: SnappyDragSettings,
     dragShapeSettings: DragShapeSettings,
 ) {
@@ -305,6 +309,7 @@ private fun TestList(
         key = { it.id },
         segmentType = { it.isHeader }
     )
+    val scope = rememberCoroutineScope()
 
     LazyColumn(
         modifier = modifier,
@@ -323,15 +328,19 @@ private fun TestList(
                     modifier = Modifier.padding(16.dp).animateItem()
                 )
             } else {
+                val snappyDragState = rememberSnappyDragState(
+                    dragSettings = snappyDragSettings,
+                    onDismiss = {
+                        onDismiss(testItem)
+                    }
+                )
+
                 SnappyItem(
                     key = testItem.id,
                     dragCoordinatorState = state,
                     modifier = Modifier.animateItem(),
-                    onDismiss = {
-                        onItemClicked(testItem)
-                    },
-                    dragDirection = DragDirection.Left,
-                    settings = snappyDragSettings,
+                    snappyDragState = snappyDragState,
+                    affectedNeighbors = affectedNeighbors,
                 ) {
                     ListItem(
                         colors = ListItemDefaults.colors(
@@ -341,7 +350,9 @@ private fun TestList(
                             .dragShape(
                                 settings = dragShapeSettings,
                             ).clickable {
-                                onItemClicked(testItem)
+                                scope.launch {
+                                    snappyDragState.dismiss(Direction.Right, spring())
+                                }
                             },
                         headlineContent = {
                             Text(
