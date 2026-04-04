@@ -69,7 +69,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates("io.github.klassenkonstantin", "snappyswipe", "0.0.4")
+    coordinates("io.github.klassenkonstantin", "snappyswipe", "0.0.5")
 
     pom {
         name.set("Snappy Swipe")

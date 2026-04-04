@@ -25,7 +25,7 @@ val items = remember {
 
 val dragCoordinatorState = rememberSnappyDragCoordinatorState(
     items = items, // Same as items of LazyColumn
-    key = { it }, // Same as key of LazyColumn item
+    key = { it }, // Same as key of LazyColumn item,
 )
 
 LazyColumn(
@@ -35,12 +35,16 @@ LazyColumn(
         items = items,
         key = { it }
     ) { item ->
+        val snappyDragState = rememberSnappyDragState(
+            onDismiss = {
+                // Remove item
+            }
+        )
+
         SnappyItem(
             key = item, // Same as key of LazyColumn item
             dragCoordinatorState = dragCoordinatorState,
-            onDismissed = {
-                // Remove item
-            },
+            snappyDragState = snappyDragState,
         ) {
             ListItem(
                 colors = ListItemDefaults.colors(
@@ -48,14 +52,13 @@ LazyColumn(
                 ),
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .dragShape(), // Use this for automatic rounded corner updates based on offset deltas between neighbors.
+                    .dragShape(), // Automatic rounded corner support
                 headlineContent = {
                     Text(
                         text = item,
                     )
                 },
             )
-
         }
     }
 }
