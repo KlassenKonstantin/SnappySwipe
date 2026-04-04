@@ -144,7 +144,7 @@ fun <T> rememberSnappyDragCoordinatorState(
 data class SnappyDraggedItemInfo(
     override val key: Any,
     override val dragOffset: Float,
-    val unstuckProgress: Float,
+    val unstickProgress: Float,
     val stuck: Boolean,
 ) : DraggedItemInfo
 

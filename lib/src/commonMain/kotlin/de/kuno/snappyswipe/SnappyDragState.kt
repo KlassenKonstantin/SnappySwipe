@@ -20,7 +20,7 @@ import kotlin.math.absoluteValue
 class SnappyDragState(
     val dragSettings: SnappyDragSettings,
     private val hapticFeedback: HapticFeedback,
-    private val onDismiss: () -> Unit = { },
+    private val onDismiss: (Direction) -> Unit = { },
     private val onRestick: () -> Unit = { },
     private val onUnstick: () -> Unit = { },
     density: Density,
@@ -32,6 +32,16 @@ class SnappyDragState(
 
     val offset: Float
         get() = offsetAnimatable.value
+
+    val progress: Float
+        get() = offsetAnimatable.value.let { currentOffset ->
+            if (currentOffset == 0f) 0f else (currentOffset / width).coerceIn(-1f, 1f)
+        }
+
+    val unstickProgress: Float
+        get() = offsetAnimatable.value.let { currentOffset ->
+            if (currentOffset == 0f) 0f else (currentOffset / unstickDistance * dragSettings.friction).coerceIn(-1f, 1f)
+        }
 
     internal var ignoreCoordinator by mutableStateOf(false)
 
@@ -67,7 +77,7 @@ class SnappyDragState(
             initialVelocity = initialVelocity
         )
 
-        onDismiss()
+        onDismiss(direction)
     }
 
     fun updateWidth(width: Int) {
@@ -120,7 +130,7 @@ class SnappyDragState(
         key = key,
         dragOffset = offsetAnimatable.value.restrictByDragDirection(dragSettings.enabledDragDirection),
         stuck = offsetAnimatable.value.absoluteValue < unstickDistance,
-        unstuckProgress = (offsetAnimatable.value.absoluteValue / unstickDistance).coerceAtMost(1f)
+        unstickProgress = (offsetAnimatable.value.absoluteValue / unstickDistance).coerceAtMost(1f)
     ).also {
         ignoreCoordinator = false
         dragInfo = it
@@ -148,7 +158,7 @@ class SnappyDragState(
             }
         }
 
-        val newUnstuckProgress = if (newStuck) {
+        val newUnstickProgress = if (newStuck) {
             (newDragOffset / unstickDistance).coerceIn(0f, 1f)
         } else {
             (newDragOffset / restickDistance).coerceIn(0f, 1f)
@@ -157,7 +167,7 @@ class SnappyDragState(
         return currentDragInfo.copy(
             dragOffset = newDragOffset,
             stuck = newStuck,
-            unstuckProgress = newUnstuckProgress
+            unstickProgress = newUnstickProgress
         ).also {
             dragInfo = it
         }
@@ -182,7 +192,8 @@ class SnappyDragState(
                 animationSpec = dragSettings.draggedItemOffsetAnimationSpec,
                 initialVelocity = velocity
             )
-            onDismiss()
+        } else if (!currentDragInfo.stuck) {
+            dragSettings.restickHapticFeedbackType?.let(hapticFeedback::performHapticFeedback)
         }
     }
 
@@ -205,7 +216,7 @@ fun rememberSnappyDragState(
     dragSettings: SnappyDragSettings = SnappySwipeDefaults.settings(),
     onUnstick: () -> Unit = { },
     onRestick: () -> Unit = { },
-    onDismiss: () -> Unit = { },
+    onDismiss: (Direction) -> Unit = { },
 ): SnappyDragState {
     val density = LocalDensity.current
     val hapticFeedback = LocalHapticFeedback.current
@@ -223,12 +234,8 @@ fun rememberSnappyDragState(
             dragSettings = dragSettings,
             hapticFeedback = hapticFeedback,
             density = density,
-            onUnstick = {
-                currentOnUnstick()
-            },
-            onRestick = {
-                currentOnRestick()
-            },
+            onUnstick = currentOnUnstick,
+            onRestick = currentOnRestick,
             onDismiss = currentOnDismiss,
         )
     }

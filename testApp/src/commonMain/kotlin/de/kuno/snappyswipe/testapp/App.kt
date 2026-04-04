@@ -154,11 +154,6 @@ fun App() {
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
-//                    LaunchedEffect(bounciness, stiffness) {
-//                        dragShapeSettings.cornerRadiusAnimationSpec =
-//                            spring(dampingRatio = bounciness, stiffness = stiffness)
-//                    }
-
                     Column(
                         modifier = Modifier.height(200.dp)
                             .padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()
