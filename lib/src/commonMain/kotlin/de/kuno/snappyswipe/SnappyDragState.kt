@@ -105,7 +105,7 @@ class SnappyDragState(
             itemState.isDraggedItem -> draggedItemOffset
 
             // Is one of the affected neighbors. The higher the distance to the dragged item, the less the offset
-            draggedItemRelation.draggedItemInfo.stuck && isAffected -> draggedItemOffset / (affectedNeighbors + 1) * ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue)
+            draggedItemRelation.draggedItemInfo.stuck && isAffected -> draggedItemOffset / (affectedNeighbors + 1) * ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue) * dragSettings.neighborDragFactor
 
             // Reset
             else -> 0f

@@ -239,6 +239,7 @@ data class SnappyDragSettings(
     val unstickDistance: Dp,
     val restickDistance: Dp,
     val friction: Float,
+    val neighborDragFactor: Float,
     val enabledDragDirection: EnabledDragDirection,
     val overdrag: Overdrag,
     val offsetAnimationSpec: FiniteAnimationSpec<Float>,

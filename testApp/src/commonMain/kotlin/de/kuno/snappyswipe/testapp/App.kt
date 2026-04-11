@@ -89,6 +89,7 @@ fun App() {
         unstickDistance = unstickDistance,
         restickDistance = restickDistance,
         offsetAnimationSpec = offsetAnimationSpec,
+        neighborDragFactor = .25f,
     )
     val dragShapeSettings = SnappySwipeDefaults.shapeSettings(
         minCornerRadius = minCornerRadius,
