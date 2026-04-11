@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ListItem
@@ -52,6 +54,7 @@ import co.touchlab.kermit.Logger
 import de.kuno.snappyswipe.Direction
 import de.kuno.snappyswipe.DragShapeSettings
 import de.kuno.snappyswipe.EnabledDragDirection
+import de.kuno.snappyswipe.SnappyBackgroundShape
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
 import de.kuno.snappyswipe.SnappySwipeDefaults
@@ -89,6 +92,8 @@ fun App() {
     var maxCornerRadius by remember { mutableStateOf(24.dp) }
 
     var affectedNeighbors by remember { mutableIntStateOf(SnappySwipeDefaults.AffectedNeighbors) }
+
+    var backgroundShape by remember { mutableStateOf(SnappySwipeDefaults.BackgroundShape) }
 
     val snappyDragSettings = SnappySwipeDefaults.settings(
         unstickDistance = unstickDistance,
@@ -158,6 +163,7 @@ fun App() {
                     snappyDragSettings = snappyDragSettings,
                     dragShapeSettings = dragShapeSettings,
                     affectedNeighbors = affectedNeighbors,
+                    backgroundShape = backgroundShape,
                 )
 
                 Surface(
@@ -174,7 +180,7 @@ fun App() {
                             }
                         }
 
-                        val pagerState = rememberPagerState { 5 }
+                        val pagerState = rememberPagerState { 6 }
                         VerticalPager(pagerState) { page ->
                             when (page) {
                                 0 -> {
@@ -314,6 +320,38 @@ fun App() {
 
                                     Slider(sliderState)
                                 }
+
+                                5 -> Column(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text("Background shape")
+                                    Spacer(Modifier.height(8.dp))
+
+                                    ButtonGroup(
+                                        overflowIndicator = { state ->
+                                            ButtonGroupDefaults.OverflowIndicator(state)
+                                        }
+                                    ) {
+                                        toggleableItem(
+                                            checked = backgroundShape == SnappyBackgroundShape.Pill,
+                                            label = "Pill",
+                                            onCheckedChange = {
+                                                backgroundShape = SnappyBackgroundShape.Pill
+                                            },
+                                            weight = 1f
+                                        )
+
+                                        toggleableItem(
+                                            checked = backgroundShape == SnappyBackgroundShape.FollowItem,
+                                            label = "FollowItem",
+                                            onCheckedChange = {
+                                                backgroundShape = SnappyBackgroundShape.FollowItem
+                                            },
+                                            weight = 1f
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -331,6 +369,7 @@ private fun TestList(
     onDismiss: (Item) -> Unit,
     snappyDragSettings: SnappyDragSettings,
     dragShapeSettings: DragShapeSettings,
+    backgroundShape: SnappyBackgroundShape,
 ) {
     val state = rememberSnappyDragCoordinatorState(
         items = items,
@@ -341,12 +380,14 @@ private fun TestList(
 
     val backgroundLeft = rememberSnappyBackground(
         containerColor = MaterialTheme.colorScheme.error,
-        icon = painterResource(Res.drawable.outline_delete_forever_24)
+        icon = painterResource(Res.drawable.outline_delete_forever_24),
+        shape = backgroundShape
     )
 
     val backgroundRight = rememberSnappyBackground(
         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        icon = painterResource(Res.drawable.outline_archive_24)
+        icon = painterResource(Res.drawable.outline_archive_24),
+        shape = backgroundShape
     )
 
     LazyColumn(
@@ -378,6 +419,7 @@ private fun TestList(
                     dragCoordinatorState = state,
                     modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
                     snappyDragState = snappyDragState,
+                    dragShapeSettings = dragShapeSettings,
                     affectedNeighbors = affectedNeighbors,
                     backgroundLeft = backgroundLeft,
                     backgroundRight = backgroundRight
@@ -387,9 +429,8 @@ private fun TestList(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
                         modifier = Modifier
-                            .dragShape(
-                                settings = dragShapeSettings,
-                            ).clickable {
+                            .dragShape()
+                            .clickable {
                                 scope.launch {
                                     snappyDragState.dismiss(Direction.Right, spring())
                                 }

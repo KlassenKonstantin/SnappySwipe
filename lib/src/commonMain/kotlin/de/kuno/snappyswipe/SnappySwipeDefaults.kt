@@ -30,6 +30,7 @@ object SnappySwipeDefaults {
 
     val BackgroundGap = 4.dp
     val BackgroundIconSize = 24.dp
+    val BackgroundShape: SnappyBackgroundShape = SnappyBackgroundShape.Pill
 
     /**
      * Drag settings for the [SnappyDragState].

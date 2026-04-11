@@ -19,11 +19,12 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -45,6 +46,7 @@ fun SnappyItem(
     modifier: Modifier = Modifier,
     affectedNeighbors: Int = SnappySwipeDefaults.AffectedNeighbors,
     snappyDragState: SnappyDragState = rememberSnappyDragState(),
+    dragShapeSettings: DragShapeSettings = SnappySwipeDefaults.shapeSettings(),
     backgroundLeft: SnappyBackground? = null,
     backgroundRight: SnappyBackground? = null,
     backgroundGap: Dp = SnappySwipeDefaults.BackgroundGap,
@@ -53,6 +55,11 @@ fun SnappyItem(
     val itemState = remember(key, snappyDragState) {
         { dragCoordinatorState.getItemState(key) }
     }
+
+    val shapeHelper = rememberShapeHelper(
+        itemState = { dragCoordinatorState.getItemState(key) },
+        settings = dragShapeSettings,
+    )
 
     val draggedKey = {
         itemState()?.draggedItemRelation?.draggedItemInfo?.key
@@ -140,12 +147,25 @@ fun SnappyItem(
                         else -> null
                     } ?: return@drawBehind
 
-                    drawRoundRect(
-                        color = background.containerColor,
-                        topLeft = Offset(left, 0f),
-                        size = Size(drawWidth, size.height),
-                        cornerRadius = CornerRadius(size.height / 2f),
-                    )
+                    translate(left = left, top = 0f) {
+                        val drawSize = Size(drawWidth, size.height)
+                        when (background.shape) {
+                            SnappyBackgroundShape.Pill -> drawRoundRect(
+                                color = background.containerColor,
+                                size = drawSize,
+                                cornerRadius = CornerRadius(size.height / 2f),
+                            )
+
+                            SnappyBackgroundShape.FollowItem -> drawOutline(
+                                outline = shapeHelper.shape.createOutline(
+                                    size = drawSize,
+                                    layoutDirection = layoutDirection,
+                                    density = this,
+                                ),
+                                color = background.containerColor,
+                            )
+                        }
+                    }
 
                     val iconSizePx = background.iconSize.toPx()
                     if (drawWidth < iconSizePx) return@drawBehind
@@ -175,8 +195,8 @@ fun SnappyItem(
                 )
             },
         ) {
-            val scope = remember(key, dragCoordinatorState) {
-                SnappyItemScopeImpl(key, dragCoordinatorState)
+            val scope = remember(shapeHelper) {
+                SnappyItemScopeImpl(shapeHelper)
             }
             with(scope) {
                 content()
@@ -207,7 +227,28 @@ data class SnappyBackground(
     val iconTint: Color,
     val containerColor: Color,
     val iconSize: Dp,
+    val shape: SnappyBackgroundShape,
 )
+
+/**
+ * Controls the shape used to draw a [SnappyBackground] behind a [SnappyItem].
+ */
+@Stable
+sealed interface SnappyBackgroundShape {
+    /**
+     * The background adopts the item's animated drag shape, sharing the same
+     * [DragShapeSettings] as the item content. Top and bottom corners animate
+     * in lockstep with the item, producing a consistent "cutout" look.
+     */
+    data object FollowItem : SnappyBackgroundShape
+
+    /**
+     * A fully rounded pill — corner radius equals half the item height. Gives
+     * a rounder, more capsule-like reveal, especially in the early phase of a
+     * swipe while the revealed width is still small.
+     */
+    data object Pill : SnappyBackgroundShape
+}
 
 @Composable
 fun rememberSnappyBackground(
@@ -215,8 +256,9 @@ fun rememberSnappyBackground(
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     iconTint: Color = contentColorFor(containerColor),
     iconSize: Dp = SnappySwipeDefaults.BackgroundIconSize,
-): SnappyBackground = remember(icon, iconTint, containerColor, iconSize) {
-    SnappyBackground(icon, iconTint, containerColor, iconSize)
+    shape: SnappyBackgroundShape = SnappySwipeDefaults.BackgroundShape,
+): SnappyBackground = remember(icon, iconTint, containerColor, iconSize, shape) {
+    SnappyBackground(icon, iconTint, containerColor, iconSize, shape)
 }
 
 @Composable
@@ -225,6 +267,7 @@ fun rememberSnappyBackground(
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     iconTint: Color = contentColorFor(containerColor),
     iconSize: Dp = SnappySwipeDefaults.BackgroundIconSize,
+    shape: SnappyBackgroundShape = SnappySwipeDefaults.BackgroundShape,
 ): SnappyBackground {
     val painter = rememberVectorPainter(icon)
     return rememberSnappyBackground(
@@ -232,6 +275,7 @@ fun rememberSnappyBackground(
         containerColor = containerColor,
         iconTint = iconTint,
         iconSize = iconSize,
+        shape = shape,
     )
 }
 
@@ -285,24 +329,16 @@ data class Overdrag(
 
 interface SnappyItemScope {
     @Stable
-    @Composable
-    fun Modifier.dragShape(
-        settings: DragShapeSettings = SnappySwipeDefaults.shapeSettings()
-    ): Modifier
+    fun Modifier.dragShape(): Modifier
 }
 
 internal class SnappyItemScopeImpl(
-    private val key: Any,
-    private val dragCoordinatorState: DragCoordinatorState<out DraggedItemInfo>,
+    private val shapeHelper: ShapeHelper,
 ) : SnappyItemScope {
-    @Composable
-    override fun Modifier.dragShape(
-        settings: DragShapeSettings
-    ) = this.dragShape(
-        key = key,
-        dragCoordinatorState = dragCoordinatorState,
-        settings = settings,
-    )
+    override fun Modifier.dragShape(): Modifier = graphicsLayer {
+        shape = shapeHelper.shape
+        clip = true
+    }
 }
 
 enum class Direction {
