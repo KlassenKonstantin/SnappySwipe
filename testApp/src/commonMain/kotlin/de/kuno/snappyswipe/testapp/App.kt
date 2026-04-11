@@ -83,6 +83,8 @@ fun App() {
     var unstickDistance by remember { mutableStateOf(SnappySwipeDefaults.UnstickDistance) }
     var restickDistance by remember { mutableStateOf(SnappySwipeDefaults.RestickDistance) }
 
+    var neighborDragFactor by remember { mutableStateOf(SnappySwipeDefaults.NeighborDragFactor) }
+
     var minCornerRadius by remember { mutableStateOf(0.dp) }
     var maxCornerRadius by remember { mutableStateOf(24.dp) }
 
@@ -93,7 +95,7 @@ fun App() {
         restickDistance = restickDistance,
         offsetAnimationSpec = offsetAnimationSpec,
         enabledDragDirection = EnabledDragDirection.Both,
-        neighborDragFactor = .25f,
+        neighborDragFactor = neighborDragFactor,
     )
     val dragShapeSettings = SnappySwipeDefaults.shapeSettings(
         minCornerRadius = minCornerRadius,
@@ -172,7 +174,7 @@ fun App() {
                             }
                         }
 
-                        val pagerState = rememberPagerState { 4 }
+                        val pagerState = rememberPagerState { 5 }
                         VerticalPager(pagerState) { page ->
                             when (page) {
                                 0 -> {
@@ -291,6 +293,26 @@ fun App() {
                                             Slider(sliderState)
                                         }
                                     }
+                                }
+
+                                4 -> Column(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text("Neighbor drag factor [${(neighborDragFactor * 100f).toInt() / 100.0}]")
+                                    Spacer(Modifier.height(8.dp))
+                                    val sliderState = rememberSliderState(
+                                        value = neighborDragFactor,
+                                        steps = 24,
+                                        valueRange = 0f..1.25f,
+                                    ).apply {
+                                        onValueChange = {
+                                            value = it
+                                            neighborDragFactor = it
+                                        }
+                                    }
+
+                                    Slider(sliderState)
                                 }
                             }
                         }
