@@ -94,12 +94,13 @@ fun App() {
     var affectedNeighbors by remember { mutableIntStateOf(SnappySwipeDefaults.AffectedNeighbors) }
 
     var backgroundShape by remember { mutableStateOf(SnappySwipeDefaults.BackgroundShape) }
+    var enabledDragDirection by remember { mutableStateOf(EnabledDragDirection.Left) }
 
     val snappyDragSettings = SnappySwipeDefaults.settings(
         unstickDistance = unstickDistance,
         restickDistance = restickDistance,
         offsetAnimationSpec = offsetAnimationSpec,
-        enabledDragDirection = EnabledDragDirection.Both,
+        enabledDragDirection = enabledDragDirection,
         neighborDragFactor = neighborDragFactor,
     )
     val dragShapeSettings = SnappySwipeDefaults.shapeSettings(
@@ -180,7 +181,7 @@ fun App() {
                             }
                         }
 
-                        val pagerState = rememberPagerState { 6 }
+                        val pagerState = rememberPagerState { 7 }
                         VerticalPager(pagerState) { page ->
                             when (page) {
                                 0 -> {
@@ -347,6 +348,47 @@ fun App() {
                                             label = "FollowItem",
                                             onCheckedChange = {
                                                 backgroundShape = SnappyBackgroundShape.FollowItem
+                                            },
+                                            weight = 1f
+                                        )
+                                    }
+                                }
+
+                                6 -> Column(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text("Enabled Drag Direction")
+                                    Spacer(Modifier.height(8.dp))
+
+                                    ButtonGroup(
+                                        overflowIndicator = { state ->
+                                            ButtonGroupDefaults.OverflowIndicator(state)
+                                        }
+                                    ) {
+                                        toggleableItem(
+                                            checked = enabledDragDirection == EnabledDragDirection.Left,
+                                            label = "Left",
+                                            onCheckedChange = {
+                                                enabledDragDirection = EnabledDragDirection.Left
+                                            },
+                                            weight = 1f
+                                        )
+
+                                        toggleableItem(
+                                            checked = enabledDragDirection == EnabledDragDirection.Both,
+                                            label = "Both",
+                                            onCheckedChange = {
+                                                enabledDragDirection = EnabledDragDirection.Both
+                                            },
+                                            weight = 1f
+                                        )
+
+                                        toggleableItem(
+                                            checked = enabledDragDirection == EnabledDragDirection.Right,
+                                            label = "Right",
+                                            onCheckedChange = {
+                                                enabledDragDirection = EnabledDragDirection.Right
                                             },
                                             weight = 1f
                                         )
