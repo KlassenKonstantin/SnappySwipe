@@ -57,6 +57,9 @@ import de.kuno.snappyswipe.SnappySwipeDefaults
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 import de.kuno.snappyswipe.rememberSnappyDragState
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+import snappyswipe.testapp.generated.resources.Res
+import snappyswipe.testapp.generated.resources.baseline_delete_forever_24
 
 @Composable
 @Preview
@@ -336,15 +339,17 @@ private fun TestList(
                 SnappyItem(
                     key = testItem.id,
                     dragCoordinatorState = state,
-                    modifier = Modifier.animateItem(),
+                    modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
                     snappyDragState = snappyDragState,
                     affectedNeighbors = affectedNeighbors,
+                    backgroundContainerColor = MaterialTheme.colorScheme.error,
+                    backgroundIcon = painterResource(Res.drawable.baseline_delete_forever_24),
                 ) {
                     ListItem(
                         colors = ListItemDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         ),
-                        modifier = Modifier.padding(horizontal = 16.dp)
+                        modifier = Modifier
                             .dragShape(
                                 settings = dragShapeSettings,
                             ).clickable {

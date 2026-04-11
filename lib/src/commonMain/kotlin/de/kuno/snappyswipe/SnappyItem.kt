@@ -7,6 +7,8 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -15,15 +17,27 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 
 @Composable
 fun SnappyItem(
@@ -32,6 +46,9 @@ fun SnappyItem(
     modifier: Modifier = Modifier,
     affectedNeighbors: Int = SnappySwipeDefaults.AffectedNeighbors,
     snappyDragState: SnappyDragState = rememberSnappyDragState(),
+    backgroundContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    backgroundIcon: Painter? = null,
+    backgroundIconTint: Color = contentColorFor(backgroundContainerColor),
     content: @Composable SnappyItemScope.() -> Unit,
 ) {
     val itemState = remember(key, snappyDragState) {
@@ -97,7 +114,66 @@ fun SnappyItem(
                     }
                 }
             ),
+        propagateMinConstraints = true
     ) {
+        Box(
+            modifier = Modifier.matchParentSize()
+                .drawBehind {
+                    if (draggedKey() != key) return@drawBehind
+
+                    val offset = snappyDragState.offset
+                    when (snappyDragState.dragSettings.enabledDragDirection) {
+                        EnabledDragDirection.Right -> if (offset <= 0f) return@drawBehind
+                        EnabledDragDirection.Left -> if (offset >= 0f) return@drawBehind
+                        EnabledDragDirection.Both -> Unit
+                    }
+
+                    val swipedWidth = offset.absoluteValue
+                    val gapPx = 4.dp.toPx()
+                    val drawWidth = swipedWidth - gapPx
+                    if (drawWidth < 1f) return@drawBehind
+
+                    val left = if (offset > 0f) 0f else size.width - drawWidth
+
+                    drawRoundRect(
+                        color = backgroundContainerColor,
+                        topLeft = Offset(left, 0f),
+                        size = Size(drawWidth, size.height),
+                        cornerRadius = CornerRadius(size.height / 2f),
+                    )
+
+                    if (backgroundIcon != null) {
+                        val intrinsic = backgroundIcon.intrinsicSize
+                        val iconWidth = if (intrinsic.width.isFinite()) {
+                            intrinsic.width
+                        } else {
+                            24.dp.toPx()
+                        }
+                        val iconHeight = if (intrinsic.height.isFinite()) {
+                            intrinsic.height
+                        } else {
+                            24.dp.toPx()
+                        }
+                        if (drawWidth < iconWidth) return@drawBehind
+
+                        val iconLeft = left + (drawWidth - iconWidth) / 2f
+                        val iconTop = (size.height - iconHeight) / 2f
+
+                        val iconAlpha = drawWidth.reverseLerp(iconWidth + gapPx, size.height)
+
+                        translate(iconLeft, iconTop) {
+                            with(backgroundIcon) {
+                                draw(
+                                    size = Size(iconWidth, iconHeight),
+                                    alpha = iconAlpha,
+                                    colorFilter = ColorFilter.tint(backgroundIconTint),
+                                )
+                            }
+                        }
+                    }
+                }
+        )
+
         Box(
             modifier = Modifier.offset {
                 IntOffset(
@@ -114,6 +190,48 @@ fun SnappyItem(
             }
         }
     }
+}
+
+@Composable
+fun SnappyItem(
+    key: Any,
+    dragCoordinatorState: DragCoordinatorState<SnappyDraggedItemInfo>,
+    backgroundIcon: ImageVector,
+    modifier: Modifier = Modifier,
+    affectedNeighbors: Int = SnappySwipeDefaults.AffectedNeighbors,
+    snappyDragState: SnappyDragState = rememberSnappyDragState(),
+    backgroundIconTint: Color = MaterialTheme.colorScheme.onPrimaryContainer,
+    backgroundContainerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    content: @Composable SnappyItemScope.() -> Unit,
+) {
+    SnappyItem(
+        key = key,
+        dragCoordinatorState = dragCoordinatorState,
+        modifier = modifier,
+        affectedNeighbors = affectedNeighbors,
+        snappyDragState = snappyDragState,
+        backgroundIcon = rememberVectorPainter(backgroundIcon),
+        backgroundIconTint = backgroundIconTint,
+        backgroundContainerColor = backgroundContainerColor,
+        content = content,
+    )
+}
+
+
+/**
+ * Maps a continuous Float value to a 0f..1f fraction based on a given range.
+ * The result is safely clamped between 0f and 1f.
+ *
+ * @receiver The value to be mapped.
+ * @param min The minimum value of the range.
+ * @param max The maximum value of the range.
+ *
+ * @return The corresponding fraction between 0f and 1f.
+ */
+private fun Float.reverseLerp(min: Float, max: Float): Float {
+    val range = max - min
+    if (range == 0f) return 0f
+    return ((this - min) / range).coerceIn(0f, 1f)
 }
 
 @Immutable
