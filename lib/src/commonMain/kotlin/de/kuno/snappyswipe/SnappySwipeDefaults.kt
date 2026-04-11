@@ -28,6 +28,9 @@ object SnappySwipeDefaults {
     val MaxRadius = 24.dp
     val MaxCornerRadiusAtOffsetDelta = 48.dp
 
+    val BackgroundGap = 4.dp
+    val BackgroundIconSize = 24.dp
+
     /**
      * Drag settings for the [SnappyDragState].
      *
@@ -37,8 +40,9 @@ object SnappySwipeDefaults {
      * @param friction Added friction to the dragged item when it is stuck to its neighbors.
      * A value of 2f means that the dragged item moves at half the drag amount.
      * @param neighborDragFactor Uniform scale applied to how much affected neighbors move
-     * during a swipe. 1f keeps the default impact, 0f pins neighbors in place, values in between
-     * dampen their movement proportionally.
+     * during a swipe. 1f keeps the default impact, 0f pins neighbors in place, values between
+     * 0f and 1f dampen their movement proportionally, and values greater than 1f amplify it
+     * beyond the default. Negative values are not supported.
      * @param enabledDragDirection Which drag directions are allowed.
      * @param overdrag The overdrag settings for the item.
      * @param offsetAnimationSpec The animation spec used to animate the offset of affected items.

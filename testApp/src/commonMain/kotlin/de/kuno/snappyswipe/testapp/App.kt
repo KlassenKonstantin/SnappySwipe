@@ -51,15 +51,18 @@ import androidx.compose.ui.unit.dp
 import co.touchlab.kermit.Logger
 import de.kuno.snappyswipe.Direction
 import de.kuno.snappyswipe.DragShapeSettings
+import de.kuno.snappyswipe.EnabledDragDirection
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
 import de.kuno.snappyswipe.SnappySwipeDefaults
+import de.kuno.snappyswipe.rememberSnappyBackground
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 import de.kuno.snappyswipe.rememberSnappyDragState
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import snappyswipe.testapp.generated.resources.Res
-import snappyswipe.testapp.generated.resources.baseline_delete_forever_24
+import snappyswipe.testapp.generated.resources.outline_archive_24
+import snappyswipe.testapp.generated.resources.outline_delete_forever_24
 
 @Composable
 @Preview
@@ -89,6 +92,7 @@ fun App() {
         unstickDistance = unstickDistance,
         restickDistance = restickDistance,
         offsetAnimationSpec = offsetAnimationSpec,
+        enabledDragDirection = EnabledDragDirection.Both,
         neighborDragFactor = .25f,
     )
     val dragShapeSettings = SnappySwipeDefaults.shapeSettings(
@@ -313,6 +317,16 @@ private fun TestList(
     )
     val scope = rememberCoroutineScope()
 
+    val backgroundLeft = rememberSnappyBackground(
+        containerColor = MaterialTheme.colorScheme.error,
+        icon = painterResource(Res.drawable.outline_delete_forever_24)
+    )
+
+    val backgroundRight = rememberSnappyBackground(
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        icon = painterResource(Res.drawable.outline_archive_24)
+    )
+
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -343,8 +357,8 @@ private fun TestList(
                     modifier = Modifier.padding(horizontal = 16.dp).animateItem(),
                     snappyDragState = snappyDragState,
                     affectedNeighbors = affectedNeighbors,
-                    backgroundContainerColor = MaterialTheme.colorScheme.error,
-                    backgroundIcon = painterResource(Res.drawable.baseline_delete_forever_24),
+                    backgroundLeft = backgroundLeft,
+                    backgroundRight = backgroundRight
                 ) {
                     ListItem(
                         colors = ListItemDefaults.colors(
