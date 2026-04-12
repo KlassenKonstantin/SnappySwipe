@@ -14,7 +14,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -63,6 +66,30 @@ fun SnappyItem(
 
     val draggedKey = {
         itemState()?.draggedItemRelation?.draggedItemInfo?.key
+    }
+
+    // True while this item is actively dragged OR settling after its own drag.
+    // Drives background drawing so the background animates back alongside the
+    // item instead of vanishing at release.
+    var isDragOwner by remember(key, snappyDragState) { mutableStateOf(false) }
+
+    LaunchedEffect(key, snappyDragState) {
+        snapshotFlow { itemState() }.collect { state ->
+            when {
+                state == null -> Unit
+                state.isDraggedItem -> isDragOwner = true
+                // Another item is being dragged → this one is just a neighbor.
+                state.draggedItemRelation != null -> isDragOwner = false
+                // else: no active drag, keep current value so we stay true
+                // while settling after our own release.
+            }
+        }
+    }
+
+    LaunchedEffect(key, snappyDragState) {
+        snapshotFlow { snappyDragState.offset }.collect { offset ->
+            if (offset == 0f) isDragOwner = false
+        }
     }
 
     LaunchedEffect(key, snappyDragState) {
@@ -125,7 +152,7 @@ fun SnappyItem(
         Box(
             modifier = Modifier.matchParentSize()
                 .drawBehind {
-                    if (draggedKey() != key) return@drawBehind
+                    if (!isDragOwner) return@drawBehind
 
                     val offset = snappyDragState.offset
                     when (snappyDragState.dragSettings.enabledDragDirection) {
