@@ -18,6 +18,7 @@ object SnappySwipeDefaults {
 
     const val Friction = 2f
     const val AffectedNeighbors = 2
+    const val NeighborDragFactor = 1f
     const val DismissMinVelocity = 4000f // Todo, not yet used
 
     const val OverdragFriction = 15f
@@ -27,6 +28,10 @@ object SnappySwipeDefaults {
     val MaxRadius = 24.dp
     val MaxCornerRadiusAtOffsetDelta = 48.dp
 
+    val BackgroundGap = 4.dp
+    val BackgroundIconSize = 24.dp
+    val BackgroundShape: SnappyBackgroundShape = SnappyBackgroundShape.Pill
+
     /**
      * Drag settings for the [SnappyDragState].
      *
@@ -35,6 +40,10 @@ object SnappySwipeDefaults {
      * @param restickDistance Distance from the edges at which the item will restick to its neighbors.
      * @param friction Added friction to the dragged item when it is stuck to its neighbors.
      * A value of 2f means that the dragged item moves at half the drag amount.
+     * @param neighborDragFactor Uniform scale applied to how much affected neighbors move
+     * during a swipe. 1f keeps the default impact, 0f pins neighbors in place, values between
+     * 0f and 1f dampen their movement proportionally, and values greater than 1f amplify it
+     * beyond the default. Negative values are not supported.
      * @param enabledDragDirection Which drag directions are allowed.
      * @param overdrag The overdrag settings for the item.
      * @param offsetAnimationSpec The animation spec used to animate the offset of affected items.
@@ -48,8 +57,9 @@ object SnappySwipeDefaults {
         unstickDistance: Dp = UnstickDistance,
         restickDistance: Dp = RestickDistance,
         friction: Float = Friction,
-        enabledDragDirection: EnabledDragDirection= EnabledDragDirection.Right,
-        overdrag: Overdrag= overdrag(),
+        neighborDragFactor: Float = NeighborDragFactor,
+        enabledDragDirection: EnabledDragDirection = EnabledDragDirection.Right,
+        overdrag: Overdrag = overdrag(),
         offsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
         draggedItemOffsetAnimationSpec: FiniteAnimationSpec<Float> = spring(),
         unstickHapticFeedbackType: HapticFeedbackType? = UnstickHapticFeedbackType,
@@ -59,6 +69,7 @@ object SnappySwipeDefaults {
             unstickDistance,
             restickDistance,
             friction,
+            neighborDragFactor,
             enabledDragDirection,
             overdrag,
             offsetAnimationSpec,
@@ -70,6 +81,7 @@ object SnappySwipeDefaults {
                 unstickDistance = unstickDistance,
                 restickDistance = restickDistance,
                 friction = friction,
+                neighborDragFactor = neighborDragFactor,
                 enabledDragDirection = enabledDragDirection,
                 overdrag = overdrag,
                 offsetAnimationSpec = offsetAnimationSpec,

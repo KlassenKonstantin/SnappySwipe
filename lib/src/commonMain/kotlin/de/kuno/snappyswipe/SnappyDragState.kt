@@ -40,7 +40,8 @@ class SnappyDragState(
 
     val unstickProgress: Float
         get() = offsetAnimatable.value.let { currentOffset ->
-            if (currentOffset == 0f) 0f else (currentOffset / unstickDistance * dragSettings.friction).coerceIn(-1f, 1f)
+            if (currentOffset == 0f) 0f
+            else (currentOffset / unstickDistance * dragSettings.friction).coerceIn(-1f, 1f)
         }
 
     internal var ignoreCoordinator by mutableStateOf(false)
@@ -92,8 +93,10 @@ class SnappyDragState(
 
         val draggedItemRelation = requireNotNull(itemState.draggedItemRelation)
         val dragOffset = draggedItemRelation.draggedItemInfo.dragOffset
-        val isAffected = draggedItemRelation.sameSegmentAsDraggedItem && draggedItemRelation.indexDelta.absoluteValue <= affectedNeighbors
-        val isOverdragging = dragSettings.enabledDragDirection == EnabledDragDirection.Left && dragOffset > 0 || dragSettings.enabledDragDirection == EnabledDragDirection.Right && dragOffset < 0
+        val isAffected =
+            draggedItemRelation.sameSegmentAsDraggedItem && draggedItemRelation.indexDelta.absoluteValue <= affectedNeighbors
+        val isOverdragging =
+            dragSettings.enabledDragDirection == EnabledDragDirection.Left && dragOffset > 0 || dragSettings.enabledDragDirection == EnabledDragDirection.Right && dragOffset < 0
 
         val draggedItemOffset = if (isOverdragging) {
             dragOffset / dragSettings.overdrag.friction
@@ -105,7 +108,10 @@ class SnappyDragState(
             itemState.isDraggedItem -> draggedItemOffset
 
             // Is one of the affected neighbors. The higher the distance to the dragged item, the less the offset
-            draggedItemRelation.draggedItemInfo.stuck && isAffected -> draggedItemOffset / (affectedNeighbors + 1) * ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue)
+            draggedItemRelation.draggedItemInfo.stuck && isAffected ->
+                draggedItemOffset / (affectedNeighbors + 1) *
+                        ((affectedNeighbors + 1) - draggedItemRelation.indexDelta.absoluteValue) *
+                        dragSettings.neighborDragFactor
 
             // Reset
             else -> 0f
@@ -139,10 +145,13 @@ class SnappyDragState(
     internal fun onDragUpdated(dragDelta: Float): SnappyDraggedItemInfo? {
         val currentDragInfo = dragInfo ?: return null
 
-        val newDragOffset = (currentDragInfo.dragOffset + dragDelta).restrictByDragDirection(dragSettings.enabledDragDirection)
+        val newDragOffset =
+            (currentDragInfo.dragOffset + dragDelta).restrictByDragDirection(dragSettings.enabledDragDirection)
 
         val newStuck = if (currentDragInfo.stuck) {
-            val isOverDragging = newDragOffset < 0f && dragSettings.enabledDragDirection == EnabledDragDirection.Right || newDragOffset > 0f && dragSettings.enabledDragDirection == EnabledDragDirection.Left
+            val isOverDragging =
+                newDragOffset < 0f && dragSettings.enabledDragDirection == EnabledDragDirection.Right
+                        || newDragOffset > 0f && dragSettings.enabledDragDirection == EnabledDragDirection.Left
             if (isOverDragging) true else newDragOffset.absoluteValue < unstickDistance
         } else {
             newDragOffset.absoluteValue < restickDistance
@@ -150,10 +159,14 @@ class SnappyDragState(
 
         if (newStuck != currentDragInfo.stuck) {
             if (newStuck) {
-                dragSettings.unstickHapticFeedbackType?.let { hapticFeedback.performHapticFeedback(it) }
+                dragSettings.unstickHapticFeedbackType?.let {
+                    hapticFeedback.performHapticFeedback(it)
+                }
                 onRestick()
             } else {
-                dragSettings.restickHapticFeedbackType?.let { hapticFeedback.performHapticFeedback(it) }
+                dragSettings.restickHapticFeedbackType?.let {
+                    hapticFeedback.performHapticFeedback(it)
+                }
                 onUnstick()
             }
         }
