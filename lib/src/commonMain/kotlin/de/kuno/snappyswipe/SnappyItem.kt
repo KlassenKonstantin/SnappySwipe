@@ -6,9 +6,9 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.contentColorFor
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -20,19 +20,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.Dispatchers
@@ -50,8 +43,9 @@ fun SnappyItem(
     affectedNeighbors: Int = SnappySwipeDefaults.AffectedNeighbors,
     snappyDragState: SnappyDragState = rememberSnappyDragState(),
     dragShapeSettings: DragShapeSettings = SnappySwipeDefaults.shapeSettings(),
-    backgroundLeft: SnappyBackground? = null,
-    backgroundRight: SnappyBackground? = null,
+    backgroundLeft: (@Composable SnappyBackgroundScope. () -> Unit)? = null,
+    backgroundRight: (@Composable SnappyBackgroundScope.() -> Unit)? = null,
+    backgroundShape: SnappyBackgroundShape = SnappySwipeDefaults.BackgroundShape,
     backgroundGap: Dp = SnappySwipeDefaults.BackgroundGap,
     content: @Composable SnappyItemScope.() -> Unit,
 ) {
@@ -149,69 +143,14 @@ fun SnappyItem(
             ),
         propagateMinConstraints = true
     ) {
-        Box(
-            modifier = Modifier.matchParentSize()
-                .drawBehind {
-                    if (!isDragOwner) return@drawBehind
-
-                    val offset = snappyDragState.offset
-                    when (snappyDragState.dragSettings.enabledDragDirection) {
-                        EnabledDragDirection.Left -> if (offset >= 0f) return@drawBehind
-                        EnabledDragDirection.Right -> if (offset <= 0f) return@drawBehind
-                        EnabledDragDirection.Both -> Unit
-                    }
-
-                    val swipedWidth = offset.absoluteValue
-                    val gapPx = backgroundGap.toPx()
-                    val drawWidth = swipedWidth - gapPx
-                    if (drawWidth < 1f) return@drawBehind
-
-                    val left = if (offset > 0f) 0f else size.width - drawWidth
-
-                    val background = when {
-                        offset < 0f -> backgroundLeft
-                        offset > 0f -> backgroundRight
-                        else -> null
-                    } ?: return@drawBehind
-
-                    translate(left = left, top = 0f) {
-                        val drawSize = Size(drawWidth, size.height)
-                        when (background.shape) {
-                            SnappyBackgroundShape.Pill -> drawRoundRect(
-                                color = background.containerColor,
-                                size = drawSize,
-                                cornerRadius = CornerRadius(size.height / 2f),
-                            )
-
-                            SnappyBackgroundShape.FollowItem -> drawOutline(
-                                outline = shapeHelper.shape.createOutline(
-                                    size = drawSize,
-                                    layoutDirection = layoutDirection,
-                                    density = this,
-                                ),
-                                color = background.containerColor,
-                            )
-                        }
-                    }
-
-                    val iconSizePx = background.iconSize.toPx()
-                    if (drawWidth < iconSizePx) return@drawBehind
-
-                    val iconLeft = left + (drawWidth - iconSizePx) / 2f
-                    val iconTop = (size.height - iconSizePx) / 2f
-
-                    val iconAlpha = drawWidth.reverseLerp(iconSizePx + gapPx, size.height)
-
-                    translate(iconLeft, iconTop) {
-                        with(background.icon) {
-                            draw(
-                                size = Size(iconSizePx, iconSizePx),
-                                alpha = iconAlpha,
-                                colorFilter = ColorFilter.tint(background.iconTint),
-                            )
-                        }
-                    }
-                }
+        Background(
+            isDragOwner = isDragOwner,
+            snappyDragState = snappyDragState,
+            backgroundGap = backgroundGap,
+            backgroundShape = backgroundShape,
+            shapeHelper = shapeHelper,
+            backgroundLeft = backgroundLeft,
+            backgroundRight = backgroundRight,
         )
 
         Box(
@@ -232,78 +171,69 @@ fun SnappyItem(
     }
 }
 
-/**
- * Maps a continuous Float value to a 0f..1f fraction based on a given range.
- * The result is safely clamped between 0f and 1f.
- *
- * @receiver The value to be mapped.
- * @param min The minimum value of the range.
- * @param max The maximum value of the range.
- *
- * @return The corresponding fraction between 0f and 1f.
- */
-private fun Float.reverseLerp(min: Float, max: Float): Float {
-    val range = max - min
-    if (range == 0f) return 0f
-    return ((this - min) / range).coerceIn(0f, 1f)
-}
-
-@Stable
-data class SnappyBackground(
-    val icon: Painter,
-    val iconTint: Color,
-    val containerColor: Color,
-    val iconSize: Dp,
-    val shape: SnappyBackgroundShape,
-)
-
-/**
- * Controls the shape used to draw a [SnappyBackground] behind a [SnappyItem].
- */
-@Stable
-sealed interface SnappyBackgroundShape {
-    /**
-     * The background adopts the item's animated drag shape, sharing the same
-     * [DragShapeSettings] as the item content. Top and bottom corners animate
-     * in lockstep with the item, producing a consistent "cutout" look.
-     */
-    data object FollowItem : SnappyBackgroundShape
-
-    /**
-     * A fully rounded pill — corner radius equals half the item height. Gives
-     * a rounder, more capsule-like reveal, especially in the early phase of a
-     * swipe while the revealed width is still small.
-     */
-    data object Pill : SnappyBackgroundShape
-}
-
 @Composable
-fun rememberSnappyBackground(
-    icon: Painter,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    iconTint: Color = contentColorFor(containerColor),
-    iconSize: Dp = SnappySwipeDefaults.BackgroundIconSize,
-    shape: SnappyBackgroundShape = SnappySwipeDefaults.BackgroundShape,
-): SnappyBackground = remember(icon, iconTint, containerColor, iconSize, shape) {
-    SnappyBackground(icon, iconTint, containerColor, iconSize, shape)
-}
+private fun BoxScope.Background(
+    isDragOwner: Boolean,
+    snappyDragState: SnappyDragState,
+    backgroundGap: Dp,
+    backgroundShape: SnappyBackgroundShape,
+    shapeHelper: ShapeHelper,
+    backgroundLeft: @Composable (SnappyBackgroundScope.() -> Unit)?,
+    backgroundRight: @Composable (SnappyBackgroundScope.() -> Unit)?,
+) {
+    if (!isDragOwner) return
 
-@Composable
-fun rememberSnappyBackground(
-    icon: ImageVector,
-    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
-    iconTint: Color = contentColorFor(containerColor),
-    iconSize: Dp = SnappySwipeDefaults.BackgroundIconSize,
-    shape: SnappyBackgroundShape = SnappySwipeDefaults.BackgroundShape,
-): SnappyBackground {
-    val painter = rememberVectorPainter(icon)
-    return rememberSnappyBackground(
-        icon = painter,
-        containerColor = containerColor,
-        iconTint = iconTint,
-        iconSize = iconSize,
-        shape = shape,
-    )
+    val offset = snappyDragState.offset
+    val directionAllowed = when (snappyDragState.dragSettings.enabledDragDirection) {
+        EnabledDragDirection.Left -> offset < 0f
+        EnabledDragDirection.Right -> offset > 0f
+        EnabledDragDirection.Both -> offset != 0f
+    }
+    if (!directionAllowed) return
+
+    val backgroundContent = when {
+        offset < 0f -> backgroundLeft
+        offset > 0f -> backgroundRight
+        else -> null
+    } ?: return
+
+    val density = LocalDensity.current
+    val gapPx = with(density) { backgroundGap.toPx() }
+    val drawWidth = offset.absoluteValue - gapPx
+    if (drawWidth < 0f) return
+
+    val clipShape = when (backgroundShape) {
+        SnappyBackgroundShape.Pill -> RoundedCornerShape(50)
+        SnappyBackgroundShape.FollowItem -> shapeHelper.shape
+    }
+
+    val scope = remember { SnappyBackgroundScope() }
+    scope.revealedWidth = drawWidth
+
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .layout { measurable, constraints ->
+                scope.itemHeight = constraints.maxHeight.toFloat()
+                scope.itemWidth = constraints.maxWidth.toFloat()
+
+                val widthPx = drawWidth.toInt().coerceIn(0, constraints.maxWidth)
+                val placeable = measurable.measure(
+                    constraints.copy(
+                        minWidth = widthPx,
+                        maxWidth = widthPx,
+                    )
+                )
+                layout(constraints.maxWidth, constraints.maxHeight) {
+                    val x = if (offset > 0f) 0
+                    else constraints.maxWidth - widthPx
+                    placeable.place(x, 0)
+                }
+            }
+            .clip(clipShape),
+    ) {
+        backgroundContent(scope)
+    }
 }
 
 @Immutable

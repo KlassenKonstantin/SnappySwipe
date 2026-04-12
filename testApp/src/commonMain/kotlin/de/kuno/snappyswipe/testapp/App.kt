@@ -54,11 +54,11 @@ import co.touchlab.kermit.Logger
 import de.kuno.snappyswipe.Direction
 import de.kuno.snappyswipe.DragShapeSettings
 import de.kuno.snappyswipe.EnabledDragDirection
+import de.kuno.snappyswipe.IconBackground
 import de.kuno.snappyswipe.SnappyBackgroundShape
 import de.kuno.snappyswipe.SnappyDragSettings
 import de.kuno.snappyswipe.SnappyItem
 import de.kuno.snappyswipe.SnappySwipeDefaults
-import de.kuno.snappyswipe.rememberSnappyBackground
 import de.kuno.snappyswipe.rememberSnappyDragCoordinatorState
 import de.kuno.snappyswipe.rememberSnappyDragState
 import kotlinx.coroutines.launch
@@ -420,17 +420,8 @@ private fun TestList(
     )
     val scope = rememberCoroutineScope()
 
-    val backgroundLeft = rememberSnappyBackground(
-        containerColor = MaterialTheme.colorScheme.error,
-        icon = painterResource(Res.drawable.outline_delete_forever_24),
-        shape = backgroundShape
-    )
-
-    val backgroundRight = rememberSnappyBackground(
-        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        icon = painterResource(Res.drawable.outline_archive_24),
-        shape = backgroundShape
-    )
+    val deleteIcon = painterResource(Res.drawable.outline_delete_forever_24)
+    val archiveIcon = painterResource(Res.drawable.outline_archive_24)
 
     LazyColumn(
         modifier = modifier,
@@ -463,8 +454,19 @@ private fun TestList(
                     snappyDragState = snappyDragState,
                     dragShapeSettings = dragShapeSettings,
                     affectedNeighbors = affectedNeighbors,
-                    backgroundLeft = backgroundLeft,
-                    backgroundRight = backgroundRight
+                    backgroundShape = backgroundShape,
+                    backgroundLeft = {
+                        IconBackground(
+                            icon = deleteIcon,
+                            containerColor = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    backgroundRight = {
+                        IconBackground(
+                            icon = archiveIcon,
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        )
+                    },
                 ) {
                     ListItem(
                         colors = ListItemDefaults.colors(
